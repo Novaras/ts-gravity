@@ -1,0 +1,28 @@
+body {
+	background-color: rgb(11, 0, 36);
+}
+
+#main {
+	border: 1px solid black;
+	border-radius: 3px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+#main #canvas {
+	border: 1px solid rgb(65, 62, 112);
+}
+
+#controls {
+	position: fixed;
+	color: white;
+}
+
+#playing {
+	display: none;
+}
+
+#paused {
+	display: inline-block;
+}

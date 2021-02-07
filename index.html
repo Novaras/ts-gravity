@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>ts-gravity</title>
+	<link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+	<div id="controls">
+		<button type="button" id="new-sim">New sim</button>
+		<div id="paused">
+			<button type="button" id="play">Play</button>
+			<button type="button" id="advance-frame">Advance</button>
+		</div>
+		<div id="playing">
+			<button type="button" id="pause">Pause</button>
+		</div>
+		<button type="button" id="label-toggle">Toggle labels</button>
+		<label for="obj-count">Count:</label>
+		<input type="number" name="obj-count" id="obj-count">
+	</div>
+	<main id="main">
+		<canvas id="canvas">No canvas support!</canvas>
+	</main>
+</body>
+<script src="bundle.js"></script>
+
+</html>
