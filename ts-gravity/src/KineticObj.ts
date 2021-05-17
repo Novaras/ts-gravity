@@ -3,7 +3,7 @@ import * as Physics from './Physics';
 
 export default class KineticObj {
 	constructor(
-		private _mass: number, private _pos: Vec2, private _speed: Vec2
+		private _mass: number, private _pos: Vec2, private _velocity: Vec2
 	) { }
 
 	// -- getters
@@ -16,8 +16,16 @@ export default class KineticObj {
 		return this._pos;
 	}
 
-	get speed() {
-		return this._speed;
+	get velocity() {
+		return this._velocity;
+	}
+
+	get momentum() {
+		return new Vec2(this._velocity.x, this._velocity.y).multiply(this.mass);
+	}
+
+	get next_pos() {
+		return new Vec2(this._pos.x, this._pos.y).add(this.velocity);
 	}
 
 	// -- setters
@@ -30,14 +38,14 @@ export default class KineticObj {
 		this._pos = pos;
 	}
 
-	setSpeed(speed_vec: Vec2) {
-		this._speed = speed_vec;
+	setVelocity(velocity: Vec2) {
+		this._velocity = velocity;
 	}
 
 	// -- modifiers
 
 	accelerate(accel_vec: Vec2) {
-		this.speed.add(accel_vec);
+		this.velocity.add(accel_vec);
 		return this;
 	}
 
@@ -50,6 +58,6 @@ export default class KineticObj {
 
 	// call this each frame
 	update() {
-		this._pos.add(this.speed);
+		this._pos.add(this.velocity);
 	}
 }
