@@ -20,7 +20,7 @@ adv_btn.addEventListener(`click`, () => {
 
 let playing = false;
 let show_labels = false;
-let n = 150;
+let n = 4;
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
 const play_btn = document.getElementById(`play`)!;
@@ -68,10 +68,10 @@ const randVec2 = (min: number = 1, max: number = 5) => {
 
 const randKineticObj = () => {
 	return new KineticObj(
-		randInt(150, 1000),
+		randInt(250, 1000),
 		randVec2(50, 750),
-		// randVec2(-0.3, 0.3)
-		randVec2(0, 0),
+		randVec2(-0.2, 0.2)
+		// randVec2(0, 0),
 	);
 };
 
@@ -86,17 +86,50 @@ const main = () => {
 	for (const [index, k_obj] of kinetic_objs.entries()) {
 		ctx.beginPath();
 		if (show_labels) {
-			ctx.strokeText(`${index}`, k_obj.pos.x, k_obj.pos.y + (k_obj.mass / 100) + 12);
+			const label_pos = {
+				x: k_obj.pos.x,
+				y: k_obj.pos.y + k_obj.radius,
+			};
+			const font_size = 12;
+			ctx.strokeText(`${index}`, label_pos.x, label_pos.y + font_size);
+			ctx.strokeText(`${k_obj.mass}`, label_pos.x, label_pos.y + 2 * font_size);
+			ctx.strokeText(
+				`(${k_obj.velocity.x.toFixed(2)}, ${k_obj.velocity.y.toFixed(2)})`,
+				label_pos.x,
+				label_pos.y + 3 * font_size
+			);
 		}
-		ctx.arc(k_obj.pos.x, k_obj.pos.y, Math.max(1, k_obj.mass / 100), 0, Math.PI * 2);
+		ctx.arc(k_obj.pos.x, k_obj.pos.y, Math.max(1, k_obj.radius), 0, Math.PI * 2);
 		ctx.stroke();
 	}
 
+	// physics phase
 	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
 		const k1 = kinetic_objs[i];
 		for (let j = i + 1; j < kinetic_objs.length; ++j) {
 			const k2 = kinetic_objs[j];
 			gravitateBoth(k1, k2);
+		}
+	}
+
+	// merge phase
+	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
+		const k1 = kinetic_objs[i];
+		for (let j = i + 1; j < kinetic_objs.length; ++j) {
+			const k2 = kinetic_objs[j];
+			// theoretically if we check the next position correctly, we shouldn't need to check the
+			// current positions, since the previous pass should have caught those collisions already
+			if (Vec2.distance(k1.next_pos, k2.next_pos) <= (k1.radius + k2.radius)) {
+				// playing = false;
+				const mass = k1.mass + k2.mass;
+				const vel = new Vec2(
+					(k1.momentum.x + k2.momentum.x) / mass,
+					(k1.momentum.y + k2.momentum.y) / mass
+				);
+				k1.setMass(mass);
+				k1.setVelocity(vel);
+				kinetic_objs.splice(j, 1);
+			}
 		}
 	}
 

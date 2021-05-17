@@ -28,6 +28,10 @@ export default class KineticObj {
 		return new Vec2(this._pos.x, this._pos.y).add(this.velocity);
 	}
 
+	get radius() {
+		return this.mass / 100;
+	}
+
 	// -- setters
 
 	setMass(mass: number) {
