@@ -1,5 +1,5 @@
 import Vec2 from "./Vec2";
-import * as Physics from './Physics';
+import * as Physics from './PhysicsLib';
 
 export default class KineticObj {
 	constructor(

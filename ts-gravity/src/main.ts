@@ -1,7 +1,9 @@
-import { clearAllFn } from './canvas-util';
 import KineticObj from './KineticObj';
-import { gravitateBoth } from './Physics';
 import Vec2 from './Vec2';
+// execution phases
+import makeRender from './render';
+import physics from './physics';
+import merge from './phase/merge';
 
 console.log(`from ts-gravity`);
 const canvas = document.getElementById(`canvas`) as HTMLCanvasElement;
@@ -58,8 +60,6 @@ count_input.addEventListener(`input`, (ev) => {
 	}
 });
 
-const clear = clearAllFn(ctx);
-
 const randInt = (min: number = 50, max: number = 150) => Math.floor(Math.random() * (max - min + 1) + min);
 
 const randVec2 = (min: number = 1, max: number = 5) => {
@@ -81,60 +81,22 @@ export let kinetic_objs = Array.from({ length: n }, randKineticObj);
 // 	new KineticObj(1000, new Vec2(300, 300), new Vec2(0, 0))
 // ];
 
+const render = makeRender(ctx);
+
 const main = () => {
-	clear(`black`);
-	for (const [index, k_obj] of kinetic_objs.entries()) {
-		ctx.beginPath();
-		if (show_labels) {
-			const label_pos = {
-				x: k_obj.pos.x,
-				y: k_obj.pos.y + k_obj.radius,
-			};
-			const font_size = 12;
-			ctx.strokeText(`${index}`, label_pos.x, label_pos.y + font_size);
-			ctx.strokeText(`${k_obj.mass}`, label_pos.x, label_pos.y + 2 * font_size);
-			ctx.strokeText(
-				`(${k_obj.velocity.x.toFixed(2)}, ${k_obj.velocity.y.toFixed(2)})`,
-				label_pos.x,
-				label_pos.y + 3 * font_size
-			);
-		}
-		ctx.arc(k_obj.pos.x, k_obj.pos.y, Math.max(1, k_obj.radius), 0, Math.PI * 2);
-		ctx.stroke();
-	}
 
+	// draw phase
+	render(kinetic_objs, show_labels);
 	// physics phase
-	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
-		const k1 = kinetic_objs[i];
-		for (let j = i + 1; j < kinetic_objs.length; ++j) {
-			const k2 = kinetic_objs[j];
-			gravitateBoth(k1, k2);
-		}
-	}
-
+	physics(kinetic_objs);
 	// merge phase
-	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
-		const k1 = kinetic_objs[i];
-		for (let j = i + 1; j < kinetic_objs.length; ++j) {
-			const k2 = kinetic_objs[j];
-			// theoretically if we check the next position correctly, we shouldn't need to check the
-			// current positions, since the previous pass should have caught those collisions already
-			if (Vec2.distance(k1.next_pos, k2.next_pos) <= (k1.radius + k2.radius)) {
-				// playing = false;
-				const mass = k1.mass + k2.mass;
-				const vel = new Vec2(
-					(k1.momentum.x + k2.momentum.x) / mass,
-					(k1.momentum.y + k2.momentum.y) / mass
-				);
-				k1.setMass(mass);
-				k1.setVelocity(vel);
-				kinetic_objs.splice(j, 1);
-			}
-		}
-	}
+	merge(kinetic_objs);
 
 	kinetic_objs.forEach(k_obj => k_obj.update());
-	window.requestAnimationFrame(playing === true ? main : () => { });
+
+	if (playing) {
+		window.requestAnimationFrame(main);
+	}
 };
 
 // window.requestAnimationFrame(() => {
