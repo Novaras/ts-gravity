@@ -1,8 +1,8 @@
 import KineticObj from './KineticObj';
 import Vec2 from './Vec2';
 // execution phases
-import makeRender from './render';
-import physics from './physics';
+import makeRender from './phase/render';
+import physics from './phase/physics';
 import merge from './phase/merge';
 
 console.log(`from ts-gravity`);

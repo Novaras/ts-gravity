@@ -1,5 +1,5 @@
-import { clearAllFn } from "./canvas-util";
-import KineticObj from "./KineticObj";
+import { clearAllFn } from "../canvas-util";
+import KineticObj from "../KineticObj";
 
 export default (ctx: CanvasRenderingContext2D) => {
 	const clear = clearAllFn(ctx);

@@ -17,23 +17,23 @@ export default (kinetic_objs: KineticObj[]) => {
 				);
 				k1.setMass(mass);
 				k1.setVelocity(vel);
-				
-				const propPos = (k1_scalar_pos: number, k2_scalar_pos: number, p1: number, p2: number) => {
-					return ((p1 * k1_scalar_pos) + (p2 * k2_scalar_pos)) / (k1_scalar_pos + k2_scalar_pos);
-				};
 
-				const pPos = (k1, k2) => {
-					const smaller = k1.mass > k2.mass ? k2.mass : k1.mass;
-					const [p1, p2] = [k1.mass / smaller, k2.mass / smaller];
-					return (dim: `x` | `y`) => {
-						return 
-					};
-				};
+				// const propPos = (k1_scalar_pos: number, k2_scalar_pos: number, p1: number, p2: number) => {
+				// 	return ((p1 * k1_scalar_pos) + (p2 * k2_scalar_pos)) / (k1_scalar_pos + k2_scalar_pos);
+				// };
 
-				k1.setPos(new Vec2(
-					propPos(k1.pos.x, k2.pos.x, p1, p2),
-					(() + ()) / ()
-				));
+				// const pPos = (k1, k2) => {
+				// 	const smaller = k1.mass > k2.mass ? k2.mass : k1.mass;
+				// 	const [p1, p2] = [k1.mass / smaller, k2.mass / smaller];
+				// 	return (dim: `x` | `y`) => {
+				// 		return 
+				// 	};
+				// };
+
+				// k1.setPos(new Vec2(
+				// 	propPos(k1.pos.x, k2.pos.x, p1, p2),
+				// 	(() + ()) / ()
+				// ));
 
 				// mrx = (m1x + m2x) / 2
 				// with mass proportions accounted:
@@ -50,7 +50,7 @@ export default (kinetic_objs: KineticObj[]) => {
 				//    = (1 + 4) / 3
 				//    = 1.66 awesome
 
-				
+
 				kinetic_objs.splice(j, 1);
 			}
 		}

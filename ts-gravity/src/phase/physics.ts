@@ -1,5 +1,5 @@
-import KineticObj from "./KineticObj";
-import { gravitateBoth } from "./PhysicsLib";
+import KineticObj from "../KineticObj";
+import { gravitateBoth } from "../PhysicsLib";
 
 export default (kinetic_objs: KineticObj[]) => {
 	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
