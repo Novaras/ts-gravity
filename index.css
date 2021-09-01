@@ -6,8 +6,10 @@ body {
 	border: 1px solid black;
 	border-radius: 3px;
 	display: flex;
+	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	gap: 1em;
 }
 
 #main #canvas {
@@ -15,7 +17,7 @@ body {
 }
 
 #controls {
-	position: fixed;
+	
 	color: white;
 }
 

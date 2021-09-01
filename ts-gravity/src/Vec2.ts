@@ -1,9 +1,26 @@
 export default class Vec2 {
 	constructor(public x: number, public y: number) { }
 
-	add(other: Vec2) {
-		this.x += other.x;
-		this.y += other.y;
+	add(other: Vec2 | number) {
+		if (typeof other === `number`) {
+			this.x += other;
+			this.y += other;
+		} else {
+			this.x += other.x;
+			this.y += other.y;
+		}
+		return this;
+	}
+
+	multiply(other: Vec2 | number) {
+		if (typeof other === `number`) {
+			this.x *= other;
+			this.y *= other;
+		} else {
+			this.x *= other.x;
+			this.y *= other.y;
+		}
+		return this;
 	}
 
 	static distance(v1: Vec2, v2: Vec2) {

@@ -1,7 +1,9 @@
-import { clearAllFn } from './canvas-util';
 import KineticObj from './KineticObj';
-import { gravitateBoth } from './Physics';
 import Vec2 from './Vec2';
+// execution phases
+import makeRender from './phase/render';
+import physics from './phase/physics';
+import merge from './phase/merge';
 
 console.log(`from ts-gravity`);
 const canvas = document.getElementById(`canvas`) as HTMLCanvasElement;
@@ -20,7 +22,7 @@ adv_btn.addEventListener(`click`, () => {
 
 let playing = false;
 let show_labels = false;
-let n = 150;
+let n = 4;
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
 const play_btn = document.getElementById(`play`)!;
@@ -58,8 +60,6 @@ count_input.addEventListener(`input`, (ev) => {
 	}
 });
 
-const clear = clearAllFn(ctx);
-
 const randInt = (min: number = 50, max: number = 150) => Math.floor(Math.random() * (max - min + 1) + min);
 
 const randVec2 = (min: number = 1, max: number = 5) => {
@@ -68,10 +68,10 @@ const randVec2 = (min: number = 1, max: number = 5) => {
 
 const randKineticObj = () => {
 	return new KineticObj(
-		randInt(150, 1000),
+		randInt(250, 1000),
 		randVec2(50, 750),
-		// randVec2(-0.3, 0.3)
-		randVec2(0, 0),
+		randVec2(-0.2, 0.2)
+		// randVec2(0, 0),
 	);
 };
 
@@ -81,27 +81,22 @@ export let kinetic_objs = Array.from({ length: n }, randKineticObj);
 // 	new KineticObj(1000, new Vec2(300, 300), new Vec2(0, 0))
 // ];
 
-const main = () => {
-	clear(`black`);
-	for (const [index, k_obj] of kinetic_objs.entries()) {
-		ctx.beginPath();
-		if (show_labels) {
-			ctx.strokeText(`${index}`, k_obj.pos.x, k_obj.pos.y + (k_obj.mass / 100) + 12);
-		}
-		ctx.arc(k_obj.pos.x, k_obj.pos.y, Math.max(1, k_obj.mass / 100), 0, Math.PI * 2);
-		ctx.stroke();
-	}
+const render = makeRender(ctx);
 
-	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
-		const k1 = kinetic_objs[i];
-		for (let j = i + 1; j < kinetic_objs.length; ++j) {
-			const k2 = kinetic_objs[j];
-			gravitateBoth(k1, k2);
-		}
-	}
+const main = () => {
+
+	// draw phase
+	render(kinetic_objs, show_labels);
+	// physics phase
+	physics(kinetic_objs);
+	// merge phase
+	merge(kinetic_objs);
 
 	kinetic_objs.forEach(k_obj => k_obj.update());
-	window.requestAnimationFrame(playing === true ? main : () => { });
+
+	if (playing) {
+		window.requestAnimationFrame(main);
+	}
 };
 
 // window.requestAnimationFrame(() => {
