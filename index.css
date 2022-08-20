@@ -48,6 +48,7 @@ body {
 	text-align: center;
 	width: 25vw;
 	overflow: visible;
+	color: white;
 }
 
 #selection-info.show {
