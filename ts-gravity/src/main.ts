@@ -23,7 +23,7 @@ adv_btn.addEventListener(`click`, () => {
 
 let playing = false;
 let show_labels = false;
-let n = 200;
+let n = 1;
 
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
@@ -43,8 +43,8 @@ const selection_info_active_cells = {} as {
 canvas.addEventListener(`click`, (ev) => {
 	const rect = canvas.getBoundingClientRect();
 	const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-    console.log("x: " + x + " y: " + y);
+	const y = ev.clientY - rect.top;
+	console.log("x: " + x + " y: " + y);
 	const click_pos = new Vec2(x, y);
 	const index = kinetic_objs?.findIndex(obj => {
 		const pos = obj.pos.clone.sub(camera_origin);
@@ -55,6 +55,24 @@ canvas.addEventListener(`click`, (ev) => {
 		selectObject(index);
 	}
 });
+canvas.addEventListener(`keydown`, (ev) => {
+	const arrow_vectors: { [key: string]: [number, number] } = {
+		arrowup: [0, -1],
+		arrowdown: [0, 1],
+		arrowright: [1, 0],
+		arrowleft: [-1, 0]
+	};
+
+	const pan_speed_scale = 10;
+	const vec = arrow_vectors[ev.key.toLowerCase()];
+
+	if (vec) {
+		ev.preventDefault();
+		console.log(vec);
+		camera_origin.add(Vec2.from(vec).multiply(pan_speed_scale));
+	}
+});
+
 play_btn.addEventListener(`click`, () => {
 	paused_controls.style.display = `none`;
 	playing_controls.style.display = `inline-block`;
@@ -103,12 +121,12 @@ const makeIDFactory = () => {
 };
 let nextId = makeIDFactory();
 
-const randKineticObj = function() {
+const randKineticObj = function () {
 	return new KineticObj(
-		randInt(10, 100),
+		randInt(1000, 1000),
 		randVec2(-100, 900),
-		randVec2(-2, 2),
-		// randVec2(-0, 0),
+		// randVec2(-2, 2),
+		randVec2(-0, 0),
 		nextId().toString(),
 	);
 };
@@ -166,7 +184,7 @@ const main = async () => {
 		// console.log(`set camera: (${selection.pos.x}, ${selection.pos.y}) [index: ${selection.index}]`);
 		camera_origin = selection.pos.clone.sub(400);
 	} else {
-		camera_origin = new Vec2(0, 0);
+		// camera_origin = new Vec2(0, 0);
 	}
 	// draw phase
 	render(kinetic_objs, camera_origin, show_labels);
