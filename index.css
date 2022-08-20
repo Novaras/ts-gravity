@@ -1,15 +1,26 @@
+html {
+	overflow: auto;
+	background-color: rgb(11, 0, 36) !important;
+}
+
 body {
-	background-color: rgb(11, 0, 36);
+	min-height: 100vh;
+	padding: 0 50px;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 50px;
+	background-color: inherit;
 }
 
 #main {
-	border: 1px solid black;
-	border-radius: 3px;
-	display: flex;
+	display: inline-flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 	gap: 1em;
+	height: 100%;
 }
 
 #main #canvas {
@@ -28,3 +39,38 @@ body {
 #paused {
 	display: inline-block;
 }
+
+#selection-info {
+	display: none;
+	border: 1px solid white;
+	border-radius: 3px;
+	padding: 0 1em 0.5em 1em;
+	text-align: center;
+	width: 25vw;
+	overflow: visible;
+}
+
+#selection-info.show {
+	display: inline-block;
+}
+
+#selection-info-display {
+	width: 100%;
+}
+
+#selection-info-data-values td {
+	min-width: 4.5em;
+}
+
+/* #selection-info #selection-info-display td {
+	text-align: center;
+} */
+
+/* #selection-info #selection-info-display {
+	transform: rotate(-90deg);
+}
+
+#selection-info #selection-info-display th,
+#selection-info #selection-info-display td {
+	transform: rotate(90deg);
+} */

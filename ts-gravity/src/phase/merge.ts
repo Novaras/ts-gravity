@@ -2,6 +2,7 @@ import KineticObj from "../KineticObj";
 import Vec2 from "../Vec2";
 
 export default (kinetic_objs: KineticObj[]) => {
+	const merged_pairs: [string, string][] = [];
 	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
 		const k1 = kinetic_objs[i];
 		for (let j = i + 1; j < kinetic_objs.length; ++j) {
@@ -9,14 +10,23 @@ export default (kinetic_objs: KineticObj[]) => {
 			// theoretically if we check the next position correctly, we shouldn't need to check the
 			// current positions, since the previous pass should have caught those collisions already
 			if (Vec2.distance(k1.next_pos, k2.next_pos) <= (k1.radius + k2.radius)) {
+				merged_pairs.push([k1.id, k2.id]);
 				// playing = false;
 				const mass = k1.mass + k2.mass;
 				const vel = new Vec2(
 					(k1.momentum.x + k2.momentum.x) / mass,
 					(k1.momentum.y + k2.momentum.y) / mass
 				);
-				k1.setMass(mass);
-				k1.setVelocity(vel);
+
+				const sortByMass = (a: KineticObj, b: KineticObj) => {
+					if (a.mass < b.mass) return -1;
+					else if (a.mass > b.mass) return 1;
+					return 0;
+				};
+				const [smaller, larger] = [k1, k2].sort(sortByMass);
+	
+				larger.setMass(mass);
+				larger.setVelocity(vel);
 
 				// const propPos = (k1_scalar_pos: number, k2_scalar_pos: number, p1: number, p2: number) => {
 				// 	return ((p1 * k1_scalar_pos) + (p2 * k2_scalar_pos)) / (k1_scalar_pos + k2_scalar_pos);
@@ -50,9 +60,15 @@ export default (kinetic_objs: KineticObj[]) => {
 				//    = (1 + 4) / 3
 				//    = 1.66 awesome
 
-
+				// normally we splice the higher index, but if that obj 'wins' the merger by being larger,
+				// then we need to swap the smaller with the updated larger object before its deleted
+				// (the high index is always the one spliced)
+				if (k1 === smaller) {
+					kinetic_objs.splice(i, 1, larger);
+				}
 				kinetic_objs.splice(j, 1);
 			}
 		}
 	}
+	return merged_pairs;
 };

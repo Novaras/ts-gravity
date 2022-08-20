@@ -1,3 +1,5 @@
+import Vec2 from "./Vec2";
+
 export const clearAllFn = (ctx: CanvasRenderingContext2D) => {
 	return (colour?: string) => {
 		const canvas = ctx.canvas;
