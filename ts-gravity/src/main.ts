@@ -23,7 +23,7 @@ adv_btn.addEventListener(`click`, () => {
 
 let playing = false;
 let show_labels = false;
-let n = 1;
+let n = 30;
 
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
@@ -123,10 +123,10 @@ let nextId = makeIDFactory();
 
 const randKineticObj = function () {
 	return new KineticObj(
-		randInt(1000, 1000),
+		randInt(50, 300),
 		randVec2(-100, 900),
-		// randVec2(-2, 2),
-		randVec2(-0, 0),
+		randVec2(-5, 5),
+		// randVec2(-0, 0),
 		nextId().toString(),
 	);
 };
@@ -205,7 +205,7 @@ const main = async () => {
 				selectObject(index);
 			}
 		}
-		title_link_el.textContent = `Object ${selection.id.toString()} (cam: ${camera_origin.toString()})`;
+		title_link_el.textContent = `Object ${selection.id.toString()}`;
 		for (const [field, cell_el] of Object.entries(selection_info_active_cells)) {
 			cell_el.textContent = selection[field as keyof KineticObj]!.toString();
 		}
