@@ -38,12 +38,14 @@ export const alignAccelVec = (accel_vec: Vec2, p1: Vec2, p2: Vec2) => {
 export const gravitateBoth = (k1: KineticObj, k2: KineticObj) => {
 	const theta = angleBetweenPoints(k1.pos, k2.pos);
 	const force = calcGForce(k1, k2);
+	// split the scalar force into components x, y
 	const f = scalarHypToVec(force, theta);
 
 	// const a1 = force / k1.mass;
 	// const a2 = force / k2.mass;
 
 	// this is so expensive
+	// calc the accel vectors for both objects
 	const av1 = new Vec2(
 		f.x / k1.mass,
 		f.y / k1.mass
@@ -58,4 +60,6 @@ export const gravitateBoth = (k1: KineticObj, k2: KineticObj) => {
 
 	k1.accelerate(av1a);
 	k2.accelerate(av2a);
+
+	return [av1a, av2a];
 };
