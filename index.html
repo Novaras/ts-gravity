@@ -9,6 +9,33 @@
 </head>
 
 <body>
+	<aside id="hud">
+		<div id="selection-info">
+			<h2 id="selection-title">
+				<a id="selection-title-link" href="javascript:void(0)"></a>
+			</h2>
+			<hr>
+			<table id="selection-info-display">
+				<thead>
+					<tr id="selection-info-data-fields">
+					</tr>
+				</thead>
+				<tbody>
+					<tr id="selection-info-data-values">
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<nav id="index">
+			<table id="index-data">
+				<thead>
+					<tr id="index-data-fields"></tr>
+				</thead>
+				<tbody id="index-data-rows">
+				</tbody>
+			</table>
+		</nav>
+	</aside>
 	<main id="main">
 		<div id="controls">
 			<button type="button" id="new-sim">New sim</button>
@@ -26,22 +53,6 @@
 		</div>
 		<canvas id="canvas" tabindex="1">No canvas support! Please use a browser from the modern age!</canvas>
 	</main>
-	<aside id="selection-info">
-		<h2 id="selection-title">
-			<a id="selection-title-link" href="javascript:void(0)"></a>
-		</h2>
-		<hr>
-		<table id="selection-info-display">
-			<thead>
-				<tr id="selection-info-data-fields">
-				</tr>
-			</thead>
-			<tbody>
-				<tr id="selection-info-data-values">
-				</tr>
-			</tbody>
-		</table>
-	</aside>
 </body>
 <script src="bundle.js"></script>
 
