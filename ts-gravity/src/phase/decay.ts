@@ -9,7 +9,7 @@ const shouldDecay = (k_obj: KineticObj) => {
 	return k_obj.mass > limit && Math.random() > 0.999;
 }
 
-export default (kinetic_objs: KineticObj[]) => {
+export default (kinetic_objs: KineticObj[], idFactory: () => string) => {
 	const new_objects: KineticObj[] = [];
 	for (const [i, k_obj] of kinetic_objs.entries()) {
 		// console.log(`check obj ${i}`);
@@ -32,11 +32,12 @@ export default (kinetic_objs: KineticObj[]) => {
 				const mass_share = Math.min((mass_pool / parts_count) + (Math.random() > 0.5 ? 1 : -1) * (mass_pool / (parts_count * 20)), mass_pool);
 				mass_pool -= mass_share;
 
-				const v = k_obj.velocity.clone().add(scalarHypToVec(velocity_mag, angle));
+				const v = k_obj.velocity.clone.add(scalarHypToVec(velocity_mag, angle));
 				const new_obj = new KineticObj(
 					mass_share,
-					k_obj.pos.clone(),
-					v
+					k_obj.pos.clone,
+					v,
+					idFactory()
 				);
 				console.log(new_obj);
 				new_obj.ghost(100);

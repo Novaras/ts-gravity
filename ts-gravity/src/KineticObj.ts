@@ -47,6 +47,10 @@ export default class KineticObj {
 		return this.mass / 100;
 	}
 
+	get ghosted() {
+		return (this._unghost_age ?? this.age) > this.age;
+	}
+
 	// -- setters
 
 	setId(id: string) {
