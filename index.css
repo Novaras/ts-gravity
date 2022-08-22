@@ -14,6 +14,10 @@ body {
 	background-color: inherit;
 }
 
+thead {
+	border-bottom: 1px solid white;
+}
+
 #main {
 	display: inline-flex;
 	flex-direction: column;
@@ -28,7 +32,6 @@ body {
 }
 
 #controls {
-	
 	color: white;
 }
 
@@ -40,15 +43,50 @@ body {
 	display: inline-block;
 }
 
+#hud {
+	display: flex;
+	flex-direction: column;
+	min-width: 400px;
+	max-height: 80vh;
+}
+
+#index {
+	border: 1px solid white;
+	border-radius: 4px;
+	padding: 0.5em 1em;
+	text-align: center;
+	min-width: 280px;
+	overflow: auto;
+	color: white;
+}
+
+#index-data {
+	border-collapse: collapse;
+}
+
+#index-data-fields > td.sort-by {
+	font-weight: bold;
+}
+
+#index-data-rows > tr:hover {
+	cursor: pointer;
+	background: white;
+	color: rgb(11, 0, 36);
+}
+
+#index-data-rows > tr > td {
+	padding: 0.3em 0.7em;
+}
+
 #selection-info {
 	display: none;
 	border: 1px solid white;
 	border-radius: 3px;
 	padding: 0 1em 0.5em 1em;
 	text-align: center;
-	width: 25vw;
 	overflow: visible;
 	color: white;
+	margin-bottom: 1em;
 }
 
 #selection-info.show {

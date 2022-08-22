@@ -2,7 +2,7 @@ import KineticObj from "../KineticObj";
 import { gravitateBoth } from "../PhysicsLib";
 
 export default (kinetic_objs: KineticObj[]) => {
-	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
+	for (let i = 0; i < Math.ceil(Math.sqrt(kinetic_objs.length - 1)); ++i) {
 		const k1 = kinetic_objs[i];
 		if (k1.ghosted) continue;
 		for (let j = i + 1; j < kinetic_objs.length; ++j) {

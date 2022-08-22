@@ -19,11 +19,12 @@ const adv_btn = document.getElementById(`advance-frame`)!;
 adv_btn.addEventListener(`click`, () => {
 	console.log(kinetic_objs);
 	window.requestAnimationFrame(main);
+	fillIndexTableRows();
 });
 
 let playing = false;
 let show_labels = false;
-let n = 30;
+let n = 5;
 
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
@@ -39,6 +40,9 @@ const title_link_el = selection_info_display.querySelector(`#selection-title-lin
 const selection_info_active_cells = {} as {
 	[key: string]: HTMLTableCellElement
 };
+const index_tbl_el = document.getElementById(`index-data`)!;
+const index_tbl_el_fields = index_tbl_el.querySelector(`#index-data-fields`) as HTMLTableRowElement;
+const index_tbl_el_rows = index_tbl_el.querySelector(`#index-data-rows`) as HTMLTableSectionElement;
 
 canvas.addEventListener(`click`, (ev) => {
 	const rect = canvas.getBoundingClientRect();
@@ -107,7 +111,10 @@ title_link_el.addEventListener(`click`, (ev) => {
 	follow_selected_input.checked = true;
 });
 
+
 const randInt = (min: number = 50, max: number = 150) => Math.floor(Math.random() * (max - min + 1) + min);
+const randArrIndex = (arr: unknown[]) => randInt(0, arr.length - 1);
+const randArrValue = <T>(arr: T[]) => arr[randArrIndex(arr)];
 
 const randVec2 = (min: number = 1, max: number = 5) => {
 	return new Vec2(randInt(min, max), randInt(min, max));
@@ -122,11 +129,17 @@ const makeIDFactory = () => {
 let nextId = makeIDFactory();
 
 const randKineticObj = function () {
+	const sign = () => Math.random() > 0.5 ? 1 : -1;
+	const velocity_mag = 10;
+	const vx = sign() * randInt(0, velocity_mag);
+	const vy = sign() * velocity_mag - vx;
+
 	return new KineticObj(
 		randInt(50, 300),
-		randVec2(-100, 900),
-		randVec2(-5, 5),
-		// randVec2(-0, 0),
+		randVec2(100, 700),
+		// randVec2(-15, 15),
+		randVec2(-0, 0),
+		// new Vec2(vx, vy),
 		nextId().toString(),
 	);
 };
@@ -151,8 +164,7 @@ const selectObject = (index: number) => {
 	const fields = [
 		`mass`,
 		`pos`,
-		`velocity`,
-		`momentum`
+		`velocity`
 	] as const;
 	fields.forEach((field: typeof fields[number]) => {
 		const field_cell_el = document.createElement(`th`);
@@ -161,7 +173,8 @@ const selectObject = (index: number) => {
 
 		const value_cell_el = document.createElement(`td`);
 		console.log(`write ${field} to cell ${value_cell_el}`);
-		value_cell_el.textContent = selection![field].toString();
+		const val = selection![field];
+		value_cell_el.textContent = field !== `velocity` ? val.toString() : val.toString(2);
 		table_data_values_row_el.appendChild(value_cell_el);
 
 		selection_info_active_cells[field] = value_cell_el;
@@ -189,7 +202,10 @@ const main = async () => {
 	// draw phase
 	render(kinetic_objs, camera_origin, show_labels);
 	// physics phase
+	const selection_v1 = selection?.velocity;
 	physics(kinetic_objs);
+	const selection_v2 = selection?.velocity;
+
 	// merge phase
 	const mergers = merge(kinetic_objs);
 
@@ -218,6 +234,68 @@ const main = async () => {
 		window.requestAnimationFrame(main);
 	}
 };
+
+// === table stuff here ===
+
+const index_table_refresh_ms = 1500;
+let index_tbl_sort_field: keyof KineticObj = `mass`;
+const indexTblSortFn = (k1: KineticObj, k2: KineticObj) => {
+	const field = index_tbl_sort_field;
+	const [v1, v2] = [k1, k2].map((k) => {
+		const v = k[field];
+		if (v instanceof Vec2) return v.magnitude;
+		else if (field === `id`) return parseInt(v as string);
+		else return v;
+	});
+	if (v1 > v2) return -1;
+	else if (v1 < v2) return 1;
+	return 0;
+};
+const index_table_fields: (keyof KineticObj)[] = [
+	`id`,
+	`mass`,
+	`pos`,
+	`velocity`
+];
+index_table_fields.forEach(field => {
+	const td = document.createElement(`td`);
+	td.textContent = `${field.charAt(0).toUpperCase()}${field.slice(1)}`;
+	if (index_tbl_sort_field === field) {
+		td.classList.add(`sort-by`);
+	}
+	td.addEventListener(`click`, () => {
+		index_tbl_sort_field = field;
+		fillIndexTableRows();
+	});
+	index_tbl_el_fields.appendChild(td);
+});
+
+const fillIndexTableRows = async () => {
+	console.log(`table draw`);
+	index_tbl_el_rows.innerHTML = ``;
+	const fragment = document.createDocumentFragment();
+	kinetic_objs.sort(indexTblSortFn).forEach((k_obj, index) => {
+		const tr = document.createElement(`tr`);
+		index_table_fields.forEach(field => {
+			const td = document.createElement(`td`);
+			const val = k_obj[field];
+			td.textContent = field !== `velocity` ? val.toString() : val.toString(2);
+			tr.appendChild(td);
+		});
+		tr.addEventListener(`click`, () => {
+			selectObject(index);
+			follow_selected_input.checked = true;
+		});
+		fragment.appendChild(tr);
+	});
+	index_tbl_el_rows.appendChild(fragment);
+};
+
+setInterval(() => {
+	if (playing) {
+		fillIndexTableRows();
+	}
+}, index_table_refresh_ms);
 
 // window.requestAnimationFrame(() => {
 // 	console.log(`go`);

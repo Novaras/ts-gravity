@@ -3,9 +3,9 @@ export type Vec2Castable = Vec2 | number | [number, number];
 export default class Vec2 {
 	constructor(public x: number, public y: number) { }
 
-	toString(radix: number = 10, decimal_fix: number = 0) {
+	toString(decimal_fix: number = 0) {
 		const parse = (n: number) => {
-			return parseFloat(n.toFixed(decimal_fix)).toString(radix);
+			return n.toFixed(decimal_fix);
 		};
 		return `{${parse(this.x)}, ${parse(this.y)}}`;
 	}
@@ -70,6 +70,10 @@ export default class Vec2 {
 
 	get tuple() {
 		return [this.x, this.y];
+	}
+
+	get magnitude() {
+		return Math.abs(this.x) + Math.abs(this.y);
 	}
 
 	get inversion() {
