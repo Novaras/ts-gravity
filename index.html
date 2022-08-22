@@ -13,7 +13,7 @@
 		<div id="controls">
 			<button type="button" id="new-sim">New sim</button>
 			<div id="paused">
-				<button type="button" id="play">Play</button>
+				<button type="button" id="play" tabindex="0">Play</button>
 				<button type="button" id="advance-frame">Advance</button>
 			</div>
 			<div id="playing">
@@ -22,9 +22,26 @@
 			<button type="button" id="label-toggle">Toggle labels</button>
 			<label for="obj-count">Count:</label>
 			<input type="number" name="obj-count" id="obj-count">
+			<input type="checkbox" name="follow-selected" id="follow-selected">
 		</div>
-		<canvas id="canvas">No canvas support!</canvas>
+		<canvas id="canvas" tabindex="1">No canvas support! Please use a browser from the modern age!</canvas>
 	</main>
+	<aside id="selection-info">
+		<h2 id="selection-title">
+			<a id="selection-title-link" href="javascript:void(0)"></a>
+		</h2>
+		<hr>
+		<table id="selection-info-display">
+			<thead>
+				<tr id="selection-info-data-fields">
+				</tr>
+			</thead>
+			<tbody>
+				<tr id="selection-info-data-values">
+				</tr>
+			</tbody>
+		</table>
+	</aside>
 </body>
 <script src="bundle.js"></script>
 

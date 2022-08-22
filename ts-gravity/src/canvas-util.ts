@@ -1,10 +1,12 @@
+import Vec2 from "./Vec2";
+
 export const clearAllFn = (ctx: CanvasRenderingContext2D) => {
+	const { width, height } = ctx.canvas;
 	return (colour?: string) => {
-		const canvas = ctx.canvas;
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.clearRect(0, 0, width, height);
 		if (colour) {
 			ctx.fillStyle = colour;
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			ctx.fillRect(0, 0, width, height);
 		}
 	};
 };

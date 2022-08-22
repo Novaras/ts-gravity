@@ -3,7 +3,7 @@ import * as Physics from './PhysicsLib';
 
 export default class KineticObj {
 	constructor(
-		private _mass: number, private _pos: Vec2, private _velocity: Vec2
+		private _mass: number, private _pos: Vec2, private _velocity: Vec2, private _id: string
 	) {
 		this._age = 0;
 	}
@@ -14,6 +14,10 @@ export default class KineticObj {
 	private _unghost_age?: number;
 
 	// -- getters
+
+	get id() {
+		return this._id;
+	}
 
 	get age() {
 		return this._age;
@@ -40,14 +44,14 @@ export default class KineticObj {
 	}
 
 	get radius() {
-		return Math.pow(this.mass, KineticObj.GROWTH_EXPONENT) / 60;
-	}
-
-	get ghosted() {
-		return (this._unghost_age !== undefined && this._unghost_age > this.age);
+		return this.mass / 100;
 	}
 
 	// -- setters
+
+	setId(id: string) {
+		this._id = id;
+	}
 
 	setMass(mass: number) {
 		this._mass = mass;
