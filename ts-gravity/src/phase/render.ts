@@ -17,7 +17,7 @@ export default (ctx: CanvasRenderingContext2D) => {
 	ctx.fillStyle = `white`;
 	ctx.strokeStyle = `white`;
 	return (kinetic_objs: KineticObj[], world_transform: Vec2, show_labels: boolean = false) => {
-		clear(`black`);
+		clear();
 
 		ctx.fillStyle = `white`;
 		ctx.fillText(`n = ${kinetic_objs.length}`, 30, 15);
@@ -28,14 +28,14 @@ export default (ctx: CanvasRenderingContext2D) => {
 
 			// console.log(`object ${index} at (${k_obj.pos.x}, ${k_obj.pos.y})`);
 			// console.log(`\tmodified to: (${pos.x}, ${pos.y})`);
-			
+
 			if (show_labels) {
 				ctx.fillStyle = `white`;
 				const label_pos = {
 					x: pos.x,
 					y: pos.y + k_obj.radius,
 				};
-				
+
 				ctx.fillText(`${k_obj.id}`, label_pos.x, label_pos.y + font_size);
 				ctx.fillText(`${k_obj.mass}`, label_pos.x, label_pos.y + 2 * font_size);
 				ctx.fillText(
@@ -45,7 +45,7 @@ export default (ctx: CanvasRenderingContext2D) => {
 				);
 			}
 
-			const {h, s, l} = massToHSL(k_obj.mass);
+			const { h, s, l } = massToHSL(k_obj.mass);
 			const obj_colour = `hsl(${h}deg, ${s}%, ${l}%)`;
 			// console.log(`obj ${k_obj.id} drawn with hsl: ${obj_colour}`);
 			ctx.strokeStyle = obj_colour;
@@ -58,7 +58,7 @@ export default (ctx: CanvasRenderingContext2D) => {
 			} else {
 				ctx.fillRect(pos.x, pos.y, 1, 1);
 			}
-		
+
 		}
 	};
 };
