@@ -4,9 +4,20 @@ import * as Physics from './PhysicsLib';
 export default class KineticObj {
 	constructor(
 		private _mass: number, private _pos: Vec2, private _velocity: Vec2
-	) { }
+	) {
+		this._age = 0;
+	}
+
+	static GROWTH_EXPONENT = 1 / 2;
+
+	private _age: number;
+	private _unghost_age?: number;
 
 	// -- getters
+
+	get age() {
+		return this._age;
+	}
 
 	get mass() {
 		return this._mass;
@@ -29,7 +40,11 @@ export default class KineticObj {
 	}
 
 	get radius() {
-		return this.mass / 100;
+		return Math.pow(this.mass, KineticObj.GROWTH_EXPONENT) / 60;
+	}
+
+	get ghosted() {
+		return (this._unghost_age !== undefined && this._unghost_age > this.age);
 	}
 
 	// -- setters
@@ -60,8 +75,16 @@ export default class KineticObj {
 		return this;
 	}
 
+	ghost(duration: number) {
+		this._unghost_age = this.age + duration;
+	}
+
 	// call this each frame
 	update() {
 		this._pos.add(this.velocity);
+		this._age += 1;
+		if (this._unghost_age && this._unghost_age <= this.age) {
+			this._unghost_age = undefined;
+		}
 	}
 }

@@ -1,7 +1,8 @@
 import KineticObj from "./KineticObj";
 import Vec2 from "./Vec2";
 
-export const G = 6.673 * Math.pow(10, -4);
+export const G_EXPONENT = -4.2;
+export const G = 6.673 * Math.pow(10, G_EXPONENT);
 
 export const angleBetweenPoints = (p1: Vec2, p2: Vec2) => {
 	return Math.atan((p2.x - p1.x) / (p2.y - p1.y));
@@ -16,7 +17,7 @@ export const scalarHypToVec = (hypotenous: number, angle: number) => {
 };
 
 export const calcGForce = (k1: KineticObj, k2: KineticObj) => {
-	return (G * k1.mass * k2.mass) / Math.pow(Vec2.distance(k1.pos, k2.pos), 1);
+	return (G * k1.mass * k2.mass) / Math.pow(Vec2.distance(k1.pos, k2.pos), 1); // GMm / r^?
 };
 
 export const alignAccelVec = (accel_vec: Vec2, p1: Vec2, p2: Vec2) => {
