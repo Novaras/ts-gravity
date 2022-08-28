@@ -10,6 +10,7 @@ export default class KineticObj {
 		this._age = 0;
 		this._radius = massToRadius(this.mass);
 		this._ghosted = false;
+		this._acceleration = Vec2.from([0, 0]);
 	}
 
 	static GROWTH_EXPONENT = 1 / 2;
@@ -18,6 +19,7 @@ export default class KineticObj {
 	private _age: number;
 	private _unghost_age?: number;
 	private _ghosted: boolean;
+	private _acceleration: Vec2;
 
 	// -- getters
 
@@ -39,6 +41,10 @@ export default class KineticObj {
 
 	get velocity() {
 		return this._velocity;
+	}
+
+	get acceleration() {
+		return this._acceleration;
 	}
 
 	get momentum() {
@@ -78,7 +84,7 @@ export default class KineticObj {
 	// -- modifiers
 
 	accelerate(accel_vec: Vec2Castable) {
-		this.velocity.add(accel_vec);
+		this._acceleration.add(accel_vec);
 		return this;
 	}
 
@@ -96,9 +102,14 @@ export default class KineticObj {
 
 	// call this each frame
 	update() {
-		this._radius = massToRadius(this.mass);
-		this._pos.add(this.velocity);
 		this._age += 1;
+
+		this._radius = massToRadius(this.mass);
+		
+		this._pos.add(this.velocity);
+		this._velocity.add(this._acceleration);
+		this._acceleration.set([0, 0]);
+
 		if (this._unghost_age && this._unghost_age <= this.age) {
 			this._unghost_age = undefined;
 			this._ghosted = false;
