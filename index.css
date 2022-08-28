@@ -31,8 +31,16 @@ thead {
 	border: 1px solid rgb(65, 62, 112);
 }
 
+#main #canvas:focus {
+	border: 1px solid hsl(160, 60%, 60%);
+}
+
 #controls {
 	color: white;
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	gap: 30px;
 }
 
 #playing {
@@ -113,3 +121,7 @@ thead {
 #selection-info #selection-info-display td {
 	transform: rotate(90deg);
 } */
+
+.d-none {
+	display: none;  
+}

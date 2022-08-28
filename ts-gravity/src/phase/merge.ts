@@ -1,15 +1,17 @@
 import KineticObj from "../KineticObj";
+import { sortByMass } from "../PhysicsLib";
 import Vec2 from "../Vec2";
 
 export default (kinetic_objs: KineticObj[]) => {
 	const merged_pairs: [string, string][] = [];
 	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
 		const k1 = kinetic_objs[i];
+		if (k1.ghosted) continue;
 		for (let j = i + 1; j < kinetic_objs.length; ++j) {
 			const k2 = kinetic_objs[j];
 			// theoretically if we check the next position correctly, we shouldn't need to check the
 			// current positions, since the previous pass should have caught those collisions already
-			if (Vec2.distance(k1.next_pos, k2.next_pos) <= (k1.radius + k2.radius)) {
+			if (Vec2.distanceSq(k1.next_pos, k2.next_pos) <= Math.pow((k1.radius + k2.radius), 2)) {
 				merged_pairs.push([k1.id, k2.id]);
 				// playing = false;
 				const mass = k1.mass + k2.mass;
@@ -18,13 +20,8 @@ export default (kinetic_objs: KineticObj[]) => {
 					(k1.momentum.y + k2.momentum.y) / mass
 				);
 
-				const sortByMass = (a: KineticObj, b: KineticObj) => {
-					if (a.mass < b.mass) return -1;
-					else if (a.mass > b.mass) return 1;
-					return 0;
-				};
 				const [smaller, larger] = [k1, k2].sort(sortByMass);
-	
+
 				larger.setMass(mass);
 				larger.setVelocity(vel);
 

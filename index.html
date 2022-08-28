@@ -14,6 +14,8 @@
 			<h2 id="selection-title">
 				<a id="selection-title-link" href="javascript:void(0)"></a>
 			</h2>
+			<label for="follow-selected">Follow: </label>
+			<input type="checkbox" name="follow-selected" id="follow-selected">
 			<hr>
 			<table id="selection-info-display">
 				<thead>
@@ -47,9 +49,12 @@
 				<button type="button" id="pause">Pause</button>
 			</div>
 			<button type="button" id="label-toggle">Toggle labels</button>
+			<div id="show-full-labels" class="d-none">
+				<label for="full-labels">Full: </label>
+				<input type="checkbox" name="full-labels" id="full-labels">
+			</div>
 			<label for="obj-count">Count:</label>
 			<input type="number" name="obj-count" id="obj-count">
-			<input type="checkbox" name="follow-selected" id="follow-selected">
 		</div>
 		<canvas id="canvas" tabindex="1">No canvas support! Please use a browser from the modern age!</canvas>
 	</main>

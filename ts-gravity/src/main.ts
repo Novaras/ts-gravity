@@ -4,6 +4,9 @@ import Vec2 from './Vec2';
 import makeRender from './phase/render';
 import physics from './phase/physics';
 import merge from './phase/merge';
+import decay from './phase/decay';
+import { randInt } from './rand-util';
+import { sortByMass } from './PhysicsLib';
 
 console.log(`from ts-gravity`);
 const canvas = document.getElementById(`canvas`) as HTMLCanvasElement;
@@ -18,19 +21,22 @@ ctx.textAlign = `center`;
 const adv_btn = document.getElementById(`advance-frame`)!;
 adv_btn.addEventListener(`click`, () => {
 	console.log(kinetic_objs);
-	window.requestAnimationFrame(main);
+	window.requestAnimationFrame(t => main(t, true));
 	fillIndexTableRows();
 });
 
 let playing = false;
 let show_labels = false;
-let n = 5;
+let n = 2;
+let t = 0;
 
 const paused_controls = document.getElementById(`paused`)!;
 const playing_controls = document.getElementById(`playing`)!;
 const play_btn = document.getElementById(`play`)!;
 const pause_btn = document.getElementById(`pause`)!;
 const labels_btn = document.getElementById(`label-toggle`)!;
+const full_labels_div = document.getElementById(`show-full-labels`);
+const full_labels_input = document.getElementById(`full-labels`) as HTMLInputElement;
 const new_sim_btn = document.getElementById(`new-sim`)!;
 const count_input = document.getElementById(`obj-count`)! as HTMLInputElement;
 count_input.value = `${n}`;
@@ -51,8 +57,8 @@ canvas.addEventListener(`click`, (ev) => {
 	console.log("x: " + x + " y: " + y);
 	const click_pos = new Vec2(x, y);
 	const index = kinetic_objs?.findIndex(obj => {
-		const pos = obj.pos.clone.sub(camera_origin);
-		return click_pos.isProximateTo(pos, Math.max(10, obj.radius));
+		const pos = obj.pos.clone.multiply(camera_zoom).sub(camera_origin);
+		return click_pos.isProximateTo(pos, Math.max(15, obj.radius * camera_zoom * 1.2));
 	});
 
 	if (index !== -1) {
@@ -60,20 +66,30 @@ canvas.addEventListener(`click`, (ev) => {
 	}
 });
 canvas.addEventListener(`keydown`, (ev) => {
-	const arrow_vectors: { [key: string]: [number, number] } = {
-		arrowup: [0, -1],
-		arrowdown: [0, 1],
-		arrowright: [1, 0],
-		arrowleft: [-1, 0]
-	};
+	const key = ev.key.toLowerCase();
 
-	const pan_speed_scale = 10;
-	const vec = arrow_vectors[ev.key.toLowerCase()];
+	console.log(key);
 
-	if (vec) {
+	if (ev.ctrlKey && [`-`, `=`].includes(key)) {
 		ev.preventDefault();
-		console.log(vec);
-		camera_origin.add(Vec2.from(vec).multiply(pan_speed_scale));
+		console.log(`changing zoom...`);
+		if (key === `=`) camera_zoom *= 1.1;
+		else camera_zoom = Math.max(0, camera_zoom * 0.9);
+	} else {
+		const arrow_vectors: { [key: string]: [number, number] } = {
+			arrowup: [0, -1],
+			arrowdown: [0, 1],
+			arrowright: [1, 0],
+			arrowleft: [-1, 0]
+		};
+
+		const pan_speed_scale = 10;
+		const vec = arrow_vectors[ev.key.toLowerCase()];
+
+		if (vec) {
+			ev.preventDefault();
+			camera_origin.add(Vec2.from(vec).multiply(pan_speed_scale * Math.pow(camera_zoom, -0.5)));
+		}
 	}
 });
 
@@ -90,11 +106,13 @@ pause_btn.addEventListener(`click`, () => {
 });
 labels_btn.addEventListener(`click`, () => {
 	show_labels = !show_labels;
+	show_labels ? full_labels_div?.classList.remove(`d-none`) : full_labels_div?.classList.add(`d-none`);
 });
 new_sim_btn.addEventListener(`click`, () => {
 	selection = null;
 	nextId = makeIDFactory();
 	kinetic_objs = Array.from({ length: n }, randKineticObj);
+	t = 0;
 	console.log(kinetic_objs);
 });
 count_input.addEventListener(`input`, (ev) => {
@@ -111,11 +129,6 @@ title_link_el.addEventListener(`click`, (ev) => {
 	follow_selected_input.checked = true;
 });
 
-
-const randInt = (min: number = 50, max: number = 150) => Math.floor(Math.random() * (max - min + 1) + min);
-const randArrIndex = (arr: unknown[]) => randInt(0, arr.length - 1);
-const randArrValue = <T>(arr: T[]) => arr[randArrIndex(arr)];
-
 const randVec2 = (min: number = 1, max: number = 5) => {
 	return new Vec2(randInt(min, max), randInt(min, max));
 };
@@ -123,29 +136,32 @@ const randVec2 = (min: number = 1, max: number = 5) => {
 const makeIDFactory = () => {
 	let id = 0;
 	return () => {
-		return id++;
+		return (id++).toString();
 	};
 };
 let nextId = makeIDFactory();
 
 const randKineticObj = function () {
 	const sign = () => Math.random() > 0.5 ? 1 : -1;
-	const velocity_mag = 10;
+	const velocity_mag = 30 * Math.random();
 	const vx = sign() * randInt(0, velocity_mag);
 	const vy = sign() * velocity_mag - vx;
 
 	return new KineticObj(
-		randInt(50, 300),
-		randVec2(100, 700),
+		randInt(10000, 10000),
+		randVec2(200, 600),
+		// randVec2(-10500, 10500),
 		// randVec2(-15, 15),
 		randVec2(-0, 0),
 		// new Vec2(vx, vy),
-		nextId().toString(),
+		nextId(),
 	);
 };
 
 const selectObject = (index: number) => {
 	selection = kinetic_objs[index];
+
+	if (!selection) return;
 
 	selection_info_display.classList.add(`show`);
 
@@ -164,7 +180,9 @@ const selectObject = (index: number) => {
 	const fields = [
 		`mass`,
 		`pos`,
-		`velocity`
+		`velocity`,
+		`age`,
+		`ghosted`
 	] as const;
 	fields.forEach((field: typeof fields[number]) => {
 		const field_cell_el = document.createElement(`th`);
@@ -183,34 +201,17 @@ const selectObject = (index: number) => {
 
 /** camera origin is the top-left corner! */
 export let camera_origin = new Vec2(0, 0);
-export let kinetic_objs = Array.from({ length: n }, randKineticObj);
+export let camera_zoom = 1;
+// export let kinetic_objs = Array.from({ length: n }, randKineticObj);
+export let kinetic_objs = [
+	new KineticObj(2000, new Vec2(200, 200), new Vec2(1, 0), `0`),
+	new KineticObj(1000, new Vec2(600, 600), new Vec2(-1, 0), `1`)
+];
 export let selection: KineticObj | null = null;
-// export const kinetic_objs = [
-// 	new KineticObj(1000, new Vec2(200, 200), new Vec2(0.5, 0)),
-// 	new KineticObj(1000, new Vec2(300, 300), new Vec2(0, 0))
-// ];
 
 const render = makeRender(ctx);
 
-const main = async () => {
-	if (selection && follow_selected_input.checked === true) {
-		// console.log(`set camera: (${selection.pos.x}, ${selection.pos.y}) [index: ${selection.index}]`);
-		camera_origin = selection.pos.clone.sub(400);
-	} else {
-		// camera_origin = new Vec2(0, 0);
-	}
-	// draw phase
-	render(kinetic_objs, camera_origin, show_labels);
-	// physics phase
-	const selection_v1 = selection?.velocity;
-	physics(kinetic_objs);
-	const selection_v2 = selection?.velocity;
-
-	// merge phase
-	const mergers = merge(kinetic_objs);
-
-	kinetic_objs.forEach(k_obj => k_obj.update());
-
+const updateSelectedInfoBox = (mergers: [string, string][]) => {
 	if (selection) {
 		const merge_pair = mergers.find(pair => pair.includes(selection!.id));
 		// if selection was part of a merger it may have been removed
@@ -228,11 +229,38 @@ const main = async () => {
 	} else if (selection_info_display.classList.contains(`show`)) {
 		selection_info_display.classList.remove(`show`);
 	}
+};
 
-	if (playing) {
-		// await new Promise(res => setTimeout(res, 100));
-		window.requestAnimationFrame(main);
+const main = async (time: number, single_pass: boolean = false) => {
+	if (selection && follow_selected_input.checked === true) {
+		// console.log(`set camera: (${selection.pos.x}, ${selection.pos.y}) [index: ${selection.index}]`);
+		camera_origin = selection.pos.clone.multiply(camera_zoom).sub(400);
+	} else {
+		// camera_origin = new Vec2(0, 0);
 	}
+
+
+	const decayed = [];
+	if (playing || single_pass) {
+		// physics phase
+		const selection_v1 = selection?.velocity;
+		physics(kinetic_objs);
+		const selection_v2 = selection?.velocity;
+
+		// merge phase
+		const mergers = merge(kinetic_objs);
+		updateSelectedInfoBox(mergers);
+
+		decayed.push(...decay(kinetic_objs, nextId));
+
+		kinetic_objs.forEach(k_obj => k_obj.update());
+		t += 1;
+	}
+
+	// draw phase
+	render(kinetic_objs, t, camera_origin, camera_zoom, show_labels, full_labels_input.checked, decayed.sort(sortByMass).at(0)?.mass);
+
+	window.requestAnimationFrame(main);
 };
 
 // === table stuff here ===
@@ -255,7 +283,8 @@ const index_table_fields: (keyof KineticObj)[] = [
 	`id`,
 	`mass`,
 	`pos`,
-	`velocity`
+	`velocity`,
+	`radius`
 ];
 index_table_fields.forEach(field => {
 	const td = document.createElement(`td`);
@@ -279,12 +308,19 @@ const fillIndexTableRows = async () => {
 		index_table_fields.forEach(field => {
 			const td = document.createElement(`td`);
 			const val = k_obj[field];
-			td.textContent = field !== `velocity` ? val.toString() : val.toString(2);
+			if (field === `velocity`) {
+				td.textContent = val.toString(2);
+			} else if (field === `radius`) {
+				td.textContent = Math.round(val as number).toString();
+			} else {
+				td.textContent = val.toString();
+			}
 			tr.appendChild(td);
 		});
 		tr.addEventListener(`click`, () => {
 			selectObject(index);
 			follow_selected_input.checked = true;
+			canvas.focus();
 		});
 		fragment.appendChild(tr);
 	});

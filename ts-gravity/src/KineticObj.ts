@@ -1,17 +1,23 @@
-import Vec2 from "./Vec2";
+import Vec2, { Vec2Castable } from "./Vec2";
 import * as Physics from './PhysicsLib';
+
+export const massToRadius = (mass: number) => mass > 10000 ? 1 + Math.pow(mass, 0.5) : mass / 150;
 
 export default class KineticObj {
 	constructor(
 		private _mass: number, private _pos: Vec2, private _velocity: Vec2, private _id: string
 	) {
 		this._age = 0;
+		this._radius = massToRadius(this.mass);
+		this._ghosted = false;
 	}
 
 	static GROWTH_EXPONENT = 1 / 2;
 
+	private _radius: number;
 	private _age: number;
 	private _unghost_age?: number;
+	private _ghosted: boolean;
 
 	// -- getters
 
@@ -40,15 +46,15 @@ export default class KineticObj {
 	}
 
 	get next_pos() {
-		return new Vec2(this._pos.x, this._pos.y).add(this.velocity);
+		return new Vec2(this._pos.x + this._velocity.x, this._pos.y + this._velocity.y);
 	}
 
 	get radius() {
-		return this.mass / 100;
+		return this._radius;
 	}
 
 	get ghosted() {
-		return (this._unghost_age ?? this.age) > this.age;
+		return this._ghosted;
 	}
 
 	// -- setters
@@ -71,7 +77,7 @@ export default class KineticObj {
 
 	// -- modifiers
 
-	accelerate(accel_vec: Vec2) {
+	accelerate(accel_vec: Vec2Castable) {
 		this.velocity.add(accel_vec);
 		return this;
 	}
@@ -85,14 +91,17 @@ export default class KineticObj {
 
 	ghost(duration: number) {
 		this._unghost_age = this.age + duration;
+		this._ghosted = true;
 	}
 
 	// call this each frame
 	update() {
+		this._radius = massToRadius(this.mass);
 		this._pos.add(this.velocity);
 		this._age += 1;
 		if (this._unghost_age && this._unghost_age <= this.age) {
 			this._unghost_age = undefined;
+			this._ghosted = false;
 		}
 	}
 }
