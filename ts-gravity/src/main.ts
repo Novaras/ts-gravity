@@ -6,7 +6,8 @@ import physics from './phase/physics';
 import merge from './phase/merge';
 import decay from './phase/decay';
 import { randInt } from './rand-util';
-import { sortByMass } from './PhysicsLib';
+import { alignAccelVec, angleBetweenPoints, calcGForce, scalarHypToVec, sortByMass } from './PhysicsLib';
+import { calcRForce } from './phase/repulse';
 
 console.log(`from ts-gravity`);
 const canvas = document.getElementById(`canvas`) as HTMLCanvasElement;
@@ -23,11 +24,12 @@ adv_btn.addEventListener(`click`, () => {
 	console.log(kinetic_objs);
 	window.requestAnimationFrame(t => main(t, true));
 	fillIndexTableRows();
+	printPrimaryInteraction(true);
 });
 
 let playing = false;
 let show_labels = false;
-let n = 2;
+let n = 20;
 let t = 0;
 
 const paused_controls = document.getElementById(`paused`)!;
@@ -68,11 +70,10 @@ canvas.addEventListener(`click`, (ev) => {
 canvas.addEventListener(`keydown`, (ev) => {
 	const key = ev.key.toLowerCase();
 
-	console.log(key);
+	// console.log(key);
 
 	if (ev.ctrlKey && [`-`, `=`].includes(key)) {
 		ev.preventDefault();
-		console.log(`changing zoom...`);
 		if (key === `=`) camera_zoom *= 1.1;
 		else camera_zoom = Math.max(0, camera_zoom * 0.9);
 	} else {
@@ -148,12 +149,12 @@ const randKineticObj = function () {
 	const vy = sign() * velocity_mag - vx;
 
 	return new KineticObj(
-		randInt(10000, 10000),
-		randVec2(200, 600),
-		// randVec2(-10500, 10500),
+		randInt(100, 500),
+		// randVec2(200, 600),
+		randVec2(-10500, 10500),
 		// randVec2(-15, 15),
-		randVec2(-0, 0),
-		// new Vec2(vx, vy),
+		// randVec2(-0, 0),
+		new Vec2(vx, vy),
 		nextId(),
 	);
 };
@@ -177,12 +178,12 @@ const selectObject = (index: number) => {
 	console.log(selection);
 	console.log(selection_info_display);
 
-	const fields = [
+	const fields: Readonly<(keyof KineticObj)[]> = [
 		`mass`,
 		`pos`,
 		`velocity`,
 		`age`,
-		`ghosted`
+		`acceleration`
 	] as const;
 	fields.forEach((field: typeof fields[number]) => {
 		const field_cell_el = document.createElement(`th`);
@@ -202,11 +203,19 @@ const selectObject = (index: number) => {
 /** camera origin is the top-left corner! */
 export let camera_origin = new Vec2(0, 0);
 export let camera_zoom = 1;
+
 // export let kinetic_objs = Array.from({ length: n }, randKineticObj);
 export let kinetic_objs = [
-	new KineticObj(2000, new Vec2(200, 200), new Vec2(1, 0), `0`),
-	new KineticObj(1000, new Vec2(600, 600), new Vec2(-1, 0), `1`)
+	new KineticObj(500, new Vec2(200, 200), new Vec2(0, 0), `0`),
+	new KineticObj(500, new Vec2(200, 600), new Vec2(-0, 0), `1`),
+	new KineticObj(500, new Vec2(600, 200), new Vec2(-0, 0), `2`),
+	new KineticObj(500, new Vec2(600, 600), new Vec2(-0, 0), `3`)
 ];
+// export let kinetic_objs = [
+// 	new KineticObj(500, new Vec2(400, 400), new Vec2(0.0, -0.2), `0`),
+// 	new KineticObj(500, new Vec2(300, 300), new Vec2(-0.0, 0.2), `1`),
+// ];
+
 export let selection: KineticObj | null = null;
 
 const render = makeRender(ctx);
@@ -332,6 +341,40 @@ setInterval(() => {
 		fillIndexTableRows();
 	}
 }, index_table_refresh_ms);
+
+
+const printPrimaryInteraction = (single_pass: boolean = false) => {
+	if (playing || single_pass) {
+		const k1 = kinetic_objs[0];
+		const k2 = kinetic_objs[1];
+
+		if (k1 && k2) {
+			const g = calcGForce(k1, k2);
+			const r = calcRForce(k1, k2);
+
+			const f_limit = Infinity;
+			let f = g + r;
+			if (Math.abs(f) > f_limit) f = (Math.abs(f) / f) * f_limit;
+
+			const sign = f >= 0 ? 1 : -1;
+			const t = angleBetweenPoints(k1.pos, k2.pos);
+			const [a1, a2] = [f / k1.mass, f / k2.mass];
+
+			const av1 = Vec2.from(alignAccelVec(scalarHypToVec(a1, t), k2.pos, k1.pos, sign));
+			const av2 = Vec2.from(alignAccelVec(scalarHypToVec(a2, t), k1.pos, k2.pos, sign));
+
+			console.group(`${k1.id} <-> ${k2.id}`);
+			console.log(`dist: ${Vec2.distance(k1.pos, k2.pos)}`)
+			console.log(`g: ${g}\tr: ${r}`);
+			console.log(`f: ${f}`);
+			console.log(`t: ${t}`);
+			console.log(`a1: ${a1.toFixed(4)}\ta2: ${a2.toFixed(4)}`);
+			console.log(`av1: ${av1.toString(4)}\tav2: ${av2.toString(4)}`);
+			console.groupEnd();
+		}
+	}
+};
+setInterval(printPrimaryInteraction, 200);
 
 // window.requestAnimationFrame(() => {
 // 	console.log(`go`);
