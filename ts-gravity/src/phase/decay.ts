@@ -1,10 +1,10 @@
 import KineticObj from "../KineticObj";
 import { G, G_EXPONENT, scalarHypToVec } from "../PhysicsLib";
 import { randArrValue, randInt } from "../rand-util";
-import Vec2 from "../Vec2";
+import { Vec } from "../Vec";
 
 export const STABILITY_FACTOR = 1e-9;
-export const STABLE_MASS_LIMIT = 1.5e5;
+export const STABLE_MASS_LIMIT = 1.75e5;
 export const GHOST_TIME = 140;
 
 export const shuffleArray = <T>(arr: T[]): void => {
@@ -38,8 +38,8 @@ export default (kinetic_objs: KineticObj[], idFactory: () => string) => {
 
 			const new_obj = new KineticObj(
 				mass_share,
-				decay_obj.pos.clone,
-				new Vec2(0, 0),
+				decay_obj.pos,
+				[0, 0],
 				idFactory()
 			);
 			new_obj.ghost(GHOST_TIME + Math.random() * GHOST_TIME * 0.7);
@@ -51,7 +51,7 @@ export default (kinetic_objs: KineticObj[], idFactory: () => string) => {
 		console.log(`we made ${new_objects.length} new objects, angle step is ${angle_step}`);
 		for (const [i, n_obj] of new_objects.entries()) {
 			const angle = angle_step * i * (1 + Math.random());
-			const v = decay_obj.velocity.clone.add(scalarHypToVec(velocity_mag * randArrValue([0.3, 0.5, 0.8, 1, 1.3, 2.5]), angle));
+			const v = Vec.add(decay_obj.velocity, scalarHypToVec(velocity_mag * randArrValue([0.3, 0.5, 0.8, 1, 1.3, 2.5]), angle));
 			n_obj.setVelocity(v);
 		}
 		console.log(`mass total was: ${decay_obj.mass}`);

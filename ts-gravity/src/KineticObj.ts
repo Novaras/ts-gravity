@@ -1,11 +1,10 @@
-import Vec2, { Vec2Castable } from "./Vec2";
-import * as Physics from './PhysicsLib';
+import { Vec } from "./Vec";
 
-export const massToRadius = (mass: number) => mass > 10000 ? 1 + Math.pow(mass, 0.5) : mass / 150;
+export const massToRadius = (mass: number) => mass / 80;
 
 export default class KineticObj {
 	constructor(
-		private _mass: number, private _pos: Vec2, private _velocity: Vec2, private _id: string
+		private _mass: number, private _pos: Vec, private _velocity: Vec, private _id: string
 	) {
 		this._age = 0;
 		this._radius = massToRadius(this.mass);
@@ -42,11 +41,11 @@ export default class KineticObj {
 	}
 
 	get momentum() {
-		return new Vec2(this._velocity.x, this._velocity.y).multiply(this.mass);
+		return Vec.mulScalar(this._velocity, this.mass);
 	}
 
 	get next_pos() {
-		return new Vec2(this._pos.x + this._velocity.x, this._pos.y + this._velocity.y);
+		return Vec.add(this._pos, this._velocity);
 	}
 
 	get radius() {
@@ -67,26 +66,18 @@ export default class KineticObj {
 		this._mass = mass;
 	}
 
-	setPos(pos: Vec2) {
+	setPos(pos: [number, number]) {
 		this._pos = pos;
 	}
 
-	setVelocity(velocity: Vec2) {
+	setVelocity(velocity: [number, number]) {
 		this._velocity = velocity;
 	}
 
 	// -- modifiers
 
-	accelerate(accel_vec: Vec2Castable) {
-		this.velocity.add(accel_vec);
-		return this;
-	}
-
-	impulse(force_scalar: number, theta: number) {
-		const accel_scalar = force_scalar / this.mass;
-		const accel_vec = Physics.scalarHypToVec(accel_scalar, theta);
-		this.accelerate(accel_vec);
-		return this;
+	accelerate(accel_vec: Vec) {
+		this._velocity = Vec.add(this._velocity, accel_vec);
 	}
 
 	ghost(duration: number) {
@@ -97,7 +88,7 @@ export default class KineticObj {
 	// call this each frame
 	update() {
 		this._radius = massToRadius(this.mass);
-		this._pos.add(this.velocity);
+		this._pos = Vec.add(this._pos, this._velocity);
 		this._age += 1;
 		if (this._unghost_age && this._unghost_age <= this.age) {
 			this._unghost_age = undefined;

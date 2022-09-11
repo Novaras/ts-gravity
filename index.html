@@ -48,16 +48,32 @@
 			<div id="playing">
 				<button type="button" id="pause">Pause</button>
 			</div>
-			<button type="button" id="label-toggle">Toggle labels</button>
-			<div id="show-full-labels" class="d-none">
-				<label for="full-labels">Full: </label>
-				<input type="checkbox" name="full-labels" id="full-labels">
-			</div>
-			<label for="obj-count">Count:</label>
-			<input type="number" name="obj-count" id="obj-count">
 		</div>
 		<canvas id="canvas" tabindex="1">No canvas support! Please use a browser from the modern age!</canvas>
 	</main>
+	<aside id="settings">
+		<div>
+			<label for="obj-count">Count:</label>
+			<input type="number" name="obj-count" id="obj-count">
+		</div>
+		<div>
+			<button type="button" id="label-toggle">Toggle labels</button>
+			<div id="show-full-labels" class="d-none">
+				<label for="full-labels">Show Vectors: </label>
+				<input type="checkbox" name="full-labels" id="full-labels">
+			</div>
+		</div>
+		<div>
+			<div>
+				<label for="show-grid">Show Grid: </label>
+				<input type="checkbox" name="show-grid" id="show-grid">
+			</div>
+		</div>
+		<div id="g-constant">
+			<label for="g-constant-total">G = <input type="number" name="g-coeff" id="g-coeff"> * 10<input type="number" id="g-exponent" class="superscript"></label>
+			<span>= <span id="g-constant-total"></span></span>
+		</div>
+	</aside>
 </body>
 <script src="bundle.js"></script>
 

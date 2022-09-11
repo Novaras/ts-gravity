@@ -12,11 +12,14 @@ body {
 	align-items: center;
 	gap: 50px;
 	background-color: inherit;
+	color: white;
 }
 
 thead {
 	border-bottom: 1px solid white;
 }
+
+/* main sections */
 
 #main {
 	display: inline-flex;
@@ -25,7 +28,27 @@ thead {
 	align-items: center;
 	gap: 1em;
 	height: 100%;
+	width: 40vw;
 }
+
+#hud {
+	display: flex;
+	flex-direction: column;
+	min-width: 400px;
+	max-height: 80vh;
+	width: 30vw;
+	overflow: auto;
+}
+
+#settings {
+	display: flex;
+	flex-direction: column;
+	width: 30vw;
+	overflow: auto;
+	gap: 1.5rem;
+}
+
+/* end main sections */
 
 #main #canvas {
 	border: 1px solid rgb(65, 62, 112);
@@ -49,13 +72,6 @@ thead {
 
 #paused {
 	display: inline-block;
-}
-
-#hud {
-	display: flex;
-	flex-direction: column;
-	min-width: 400px;
-	max-height: 80vh;
 }
 
 #index {
@@ -109,19 +125,17 @@ thead {
 	min-width: 4.5em;
 }
 
-/* #selection-info #selection-info-display td {
-	text-align: center;
-} */
-
-/* #selection-info #selection-info-display {
-	transform: rotate(-90deg);
-}
-
-#selection-info #selection-info-display th,
-#selection-info #selection-info-display td {
-	transform: rotate(90deg);
-} */
-
 .d-none {
 	display: none;  
+}
+
+.superscript {
+	vertical-align: super;
+	font-size: 0.6em;
+	position: relative;
+	top: -0.5em;
+}
+
+.w-4 {
+	width: 4em;
 }

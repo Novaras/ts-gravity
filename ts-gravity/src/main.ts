@@ -1,12 +1,13 @@
 import KineticObj from './KineticObj';
-import Vec2 from './Vec2';
+import { Vec } from './Vec';
 // execution phases
 import makeRender from './phase/render';
-import physics from './phase/physics';
+import physics, { GRANULARITY_BREAKPOINT, universe_bounding_rect, universe_cells } from './phase/physics';
 import merge from './phase/merge';
 import decay from './phase/decay';
-import { randInt } from './rand-util';
-import { sortByMass } from './PhysicsLib';
+import { randInt, randVec } from './rand-util';
+import { G, G_COEFF, G_EXPONENT, sortByMass, alterGCoeff, alterGExponent } from './PhysicsLib';
+import { Rect, rectDims } from './Rect';
 
 console.log(`from ts-gravity`);
 const canvas = document.getElementById(`canvas`) as HTMLCanvasElement;
@@ -20,14 +21,14 @@ ctx.textAlign = `center`;
 
 const adv_btn = document.getElementById(`advance-frame`)!;
 adv_btn.addEventListener(`click`, () => {
-	console.log(kinetic_objs);
+	// console.log(kinetic_objs);
 	window.requestAnimationFrame(t => main(t, true));
 	fillIndexTableRows();
 });
 
 let playing = false;
 let show_labels = false;
-let n = 2;
+let n = 100;
 let t = 0;
 
 const paused_controls = document.getElementById(`paused`)!;
@@ -42,7 +43,7 @@ const count_input = document.getElementById(`obj-count`)! as HTMLInputElement;
 count_input.value = `${n}`;
 const follow_selected_input = document.getElementById(`follow-selected`) as HTMLInputElement;
 const selection_info_display = document.getElementById(`selection-info`)!;
-const title_link_el = selection_info_display.querySelector(`#selection-title-link`)!;
+const selection_title_link_el = selection_info_display.querySelector(`#selection-title-link`)!;
 const selection_info_active_cells = {} as {
 	[key: string]: HTMLTableCellElement
 };
@@ -50,15 +51,23 @@ const index_tbl_el = document.getElementById(`index-data`)!;
 const index_tbl_el_fields = index_tbl_el.querySelector(`#index-data-fields`) as HTMLTableRowElement;
 const index_tbl_el_rows = index_tbl_el.querySelector(`#index-data-rows`) as HTMLTableSectionElement;
 
+const show_grid_input = document.getElementById(`show-grid`) as HTMLInputElement;
+
+// G display
+const g_display_el = document.getElementById(`g-constant`) as HTMLDivElement;
+const g_coeff_input_el = document.getElementById(`g-coeff`) as HTMLInputElement;
+const g_exponent_input_el = document.getElementById(`g-exponent`) as HTMLInputElement;
+const g_total_display_el = document.getElementById(`g-constant-total`) as HTMLSpanElement;
+
 canvas.addEventListener(`click`, (ev) => {
 	const rect = canvas.getBoundingClientRect();
 	const x = ev.clientX - rect.left;
 	const y = ev.clientY - rect.top;
-	console.log("x: " + x + " y: " + y);
-	const click_pos = new Vec2(x, y);
+	// console.log("x: " + x + " y: " + y);
+	const click_pos: Vec = [x, y];
 	const index = kinetic_objs?.findIndex(obj => {
-		const pos = obj.pos.clone.multiply(camera_zoom).sub(camera_origin);
-		return click_pos.isProximateTo(pos, Math.max(15, obj.radius * camera_zoom * 1.2));
+		const pos = Vec.sub(Vec.mulScalar(obj.pos, camera_zoom), camera_origin);
+		return Vec.proximate(click_pos, pos, Math.max(15, obj.radius * camera_zoom * 1.2));
 	});
 
 	if (index !== -1) {
@@ -68,11 +77,11 @@ canvas.addEventListener(`click`, (ev) => {
 canvas.addEventListener(`keydown`, (ev) => {
 	const key = ev.key.toLowerCase();
 
-	console.log(key);
+	// console.log(key);
 
 	if (ev.ctrlKey && [`-`, `=`].includes(key)) {
 		ev.preventDefault();
-		console.log(`changing zoom...`);
+		// console.log(`changing zoom...`);
 		if (key === `=`) camera_zoom *= 1.1;
 		else camera_zoom = Math.max(0, camera_zoom * 0.9);
 	} else {
@@ -88,7 +97,7 @@ canvas.addEventListener(`keydown`, (ev) => {
 
 		if (vec) {
 			ev.preventDefault();
-			camera_origin.add(Vec2.from(vec).multiply(pan_speed_scale * Math.pow(camera_zoom, -0.5)));
+			camera_origin = Vec.add(camera_origin, Vec.mulScalar(vec, pan_speed_scale * Math.pow(camera_zoom, -0.5)));
 		}
 	}
 });
@@ -109,13 +118,13 @@ labels_btn.addEventListener(`click`, () => {
 	show_labels ? full_labels_div?.classList.remove(`d-none`) : full_labels_div?.classList.add(`d-none`);
 });
 new_sim_btn.addEventListener(`click`, () => {
-	selection = null;
+	selection = undefined;
 	nextId = makeIDFactory();
 	kinetic_objs = Array.from({ length: n }, randKineticObj);
 	t = 0;
 	console.log(kinetic_objs);
 });
-count_input.addEventListener(`input`, (ev) => {
+count_input.addEventListener(`change`, (ev) => {
 	n = parseInt((ev.target as HTMLInputElement).value);
 	if (n > kinetic_objs.length) {
 		for (let i = kinetic_objs.length; i < n; ++i) {
@@ -125,13 +134,40 @@ count_input.addEventListener(`input`, (ev) => {
 		kinetic_objs = kinetic_objs.slice(0, n);
 	}
 });
-title_link_el.addEventListener(`click`, (ev) => {
+selection_title_link_el.addEventListener(`click`, (ev) => {
 	follow_selected_input.checked = true;
 });
 
-const randVec2 = (min: number = 1, max: number = 5) => {
-	return new Vec2(randInt(min, max), randInt(min, max));
-};
+// G display events
+g_total_display_el.textContent = G().toFixed(2);
+g_coeff_input_el.value = G_COEFF.toFixed(2);
+g_coeff_input_el.addEventListener(`change`, (ev) => {
+	const v = parseFloat((ev.target as HTMLInputElement).value);
+	alterGCoeff(v);
+	g_total_display_el.textContent = G().toFixed(2);
+});
+g_exponent_input_el.value = G_EXPONENT.toFixed(2);
+g_exponent_input_el.addEventListener(`change`, (ev) => {
+	const v = parseFloat((ev.target as HTMLInputElement).value);
+	alterGExponent(v);
+	g_total_display_el.textContent = G().toFixed(2);
+});
+// make the boxes autofit the content
+[g_coeff_input_el, g_exponent_input_el].forEach(el => {
+	el.addEventListener(`input`, (ev) => {
+		const tmp_el = document.createElement(`span`);
+		tmp_el.style.display = `block`;
+		tmp_el.style.visibility = `hidden`;
+		tmp_el.style.fontSize = el.style.fontSize;
+		document.body.append(tmp_el);
+		const v = parseFloat((ev.target as HTMLInputElement).value);
+		tmp_el.textContent = v.toFixed(2);
+		console.log(`v = ${v.toFixed(2)}, w = ${tmp_el.clientWidth}px`);
+		el.style.width = `${tmp_el.clientWidth + 20}px`;
+		tmp_el.remove();
+	});
+	el.size = 5;
+});
 
 const makeIDFactory = () => {
 	let id = 0;
@@ -143,17 +179,17 @@ let nextId = makeIDFactory();
 
 const randKineticObj = function () {
 	const sign = () => Math.random() > 0.5 ? 1 : -1;
-	const velocity_mag = 30 * Math.random();
+	const velocity_mag = 1 * Math.random();
 	const vx = sign() * randInt(0, velocity_mag);
-	const vy = sign() * velocity_mag - vx;
+	const vy = sign() * velocity_mag - Math.abs(vx);
 
 	return new KineticObj(
-		randInt(10000, 10000),
-		randVec2(200, 600),
-		// randVec2(-10500, 10500),
-		// randVec2(-15, 15),
-		randVec2(-0, 0),
-		// new Vec2(vx, vy),
+		randInt(300, 10000),
+		// randVec(200, 600),
+		randVec(-500 * n, 500 * n),
+		// randVec(-15, 15),
+		// randVec(-0, 0),
+		[vx, vy],
 		nextId(),
 	);
 };
@@ -165,17 +201,13 @@ const selectObject = (index: number) => {
 
 	selection_info_display.classList.add(`show`);
 
-	title_link_el.textContent = `Object ${selection!.id.toString()}`;
+	selection_title_link_el.textContent = `Object ${selection!.id.toString()}`;
 
 	const table_el = selection_info_display.querySelector(`#selection-info-display`)!;
 	const table_data_fields_row_el = table_el.querySelector(`#selection-info-data-fields`)!;
 	const table_data_values_row_el = table_el.querySelector(`#selection-info-data-values`)!;
 	[...table_data_fields_row_el.children].forEach(el => el.remove());
 	[...table_data_values_row_el.children].forEach(el => el.remove());
-
-	console.log(`generating table`);
-	console.log(selection);
-	console.log(selection_info_display);
 
 	const fields = [
 		`mass`,
@@ -190,9 +222,8 @@ const selectObject = (index: number) => {
 		table_data_fields_row_el.appendChild(field_cell_el);
 
 		const value_cell_el = document.createElement(`td`);
-		console.log(`write ${field} to cell ${value_cell_el}`);
 		const val = selection![field];
-		value_cell_el.textContent = field !== `velocity` ? val.toString() : val.toString(2);
+		value_cell_el.textContent = (val instanceof Array) ? Vec.toString(val) : val.toString();
 		table_data_values_row_el.appendChild(value_cell_el);
 
 		selection_info_active_cells[field] = value_cell_el;
@@ -200,16 +231,16 @@ const selectObject = (index: number) => {
 };
 
 /** camera origin is the top-left corner! */
-export let camera_origin = new Vec2(0, 0);
-export let camera_zoom = 1;
-// export let kinetic_objs = Array.from({ length: n }, randKineticObj);
-export let kinetic_objs = [
-	new KineticObj(2000, new Vec2(200, 200), new Vec2(1, 0), `0`),
-	new KineticObj(1000, new Vec2(600, 600), new Vec2(-1, 0), `1`)
-];
-export let selection: KineticObj | null = null;
+export let camera_origin: Vec = [0, 0];
+export let camera_zoom = 0.01;
+export let kinetic_objs = Array.from({ length: n }, randKineticObj);
+export let selection: KineticObj | undefined;
 
-const render = makeRender(ctx);
+
+const grid_canvas = document.createElement(`canvas`);
+grid_canvas.width = canvas.width;
+grid_canvas.height = canvas.height;
+const render = makeRender(canvas, grid_canvas);
 
 const updateSelectedInfoBox = (mergers: [string, string][]) => {
 	if (selection) {
@@ -222,56 +253,64 @@ const updateSelectedInfoBox = (mergers: [string, string][]) => {
 				selectObject(index);
 			}
 		}
-		title_link_el.textContent = `Object ${selection.id.toString()}`;
+		selection_title_link_el.textContent = `Object ${selection.id.toString()}`;
 		for (const [field, cell_el] of Object.entries(selection_info_active_cells)) {
-			cell_el.textContent = selection[field as keyof KineticObj]!.toString();
+			const val = selection[field as keyof KineticObj]!;
+			cell_el.textContent = (val instanceof Array) ? Vec.toString(val) : val.toString();
 		}
 	} else if (selection_info_display.classList.contains(`show`)) {
 		selection_info_display.classList.remove(`show`);
 	}
 };
 
+const waitForMs = (ms: number = (1000 / 40)) => new Promise(res => setTimeout(res, ms));
+
+
 const main = async (time: number, single_pass: boolean = false) => {
+	const timeout = waitForMs();
+
 	if (selection && follow_selected_input.checked === true) {
 		// console.log(`set camera: (${selection.pos.x}, ${selection.pos.y}) [index: ${selection.index}]`);
-		camera_origin = selection.pos.clone.multiply(camera_zoom).sub(400);
+		camera_origin = Vec.subScalar(Vec.mulScalar(selection.pos, camera_zoom), 400);
 	} else {
-		// camera_origin = new Vec2(0, 0);
+		// camera_origin = [0, 0];
 	}
 
 
 	const decayed = [];
 	if (playing || single_pass) {
-		// physics phase
-		const selection_v1 = selection?.velocity;
-		physics(kinetic_objs);
-		const selection_v2 = selection?.velocity;
+		if (kinetic_objs.length > 1) {
+			// physics phase
+			physics(kinetic_objs);
 
-		// merge phase
-		const mergers = merge(kinetic_objs);
-		updateSelectedInfoBox(mergers);
+			// merge phase
+			const mergers = merge(kinetic_objs);
 
-		decayed.push(...decay(kinetic_objs, nextId));
+			updateSelectedInfoBox(mergers);
+
+			decayed.push(...decay(kinetic_objs, nextId));
+		}
 
 		kinetic_objs.forEach(k_obj => k_obj.update());
 		t += 1;
 	}
 
-	// draw phase
-	render(kinetic_objs, t, camera_origin, camera_zoom, show_labels, full_labels_input.checked, decayed.sort(sortByMass).at(0)?.mass);
+	render(kinetic_objs, Math.floor(t), camera_origin, camera_zoom, show_labels, full_labels_input.checked, show_grid_input.checked, decayed.sort(sortByMass).at(0)?.mass, selection);
+	
 
+	await timeout;
 	window.requestAnimationFrame(main);
 };
 
 // === table stuff here ===
 
-const index_table_refresh_ms = 1500;
+const index_table_refresh_ms = 5000;
 let index_tbl_sort_field: keyof KineticObj = `mass`;
 const indexTblSortFn = (k1: KineticObj, k2: KineticObj) => {
 	const field = index_tbl_sort_field;
 	const [v1, v2] = [k1, k2].map((k) => {
 		const v = k[field];
-		if (v instanceof Vec2) return v.magnitude;
+		if (v instanceof Array) return Vec.magnitude(v);
 		else if (field === `id`) return parseInt(v as string);
 		else return v;
 	});
@@ -300,7 +339,7 @@ index_table_fields.forEach(field => {
 });
 
 const fillIndexTableRows = async () => {
-	console.log(`table draw`);
+	// console.log(`table draw`);
 	index_tbl_el_rows.innerHTML = ``;
 	const fragment = document.createDocumentFragment();
 	kinetic_objs.sort(indexTblSortFn).forEach((k_obj, index) => {
@@ -308,10 +347,10 @@ const fillIndexTableRows = async () => {
 		index_table_fields.forEach(field => {
 			const td = document.createElement(`td`);
 			const val = k_obj[field];
-			if (field === `velocity`) {
-				td.textContent = val.toString(2);
-			} else if (field === `radius`) {
+			if (field === `radius`) {
 				td.textContent = Math.round(val as number).toString();
+			} else if (val instanceof Array) {
+				td.textContent = Vec.toString(val);
 			} else {
 				td.textContent = val.toString();
 			}
