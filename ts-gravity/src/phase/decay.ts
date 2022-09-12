@@ -48,7 +48,7 @@ export default (kinetic_objs: KineticObj[], idFactory: () => string) => {
 		shuffleArray(new_objects);
 		const velocity_mag = Math.min(60, Math.max(0.1, Math.random() * Math.pow(decay_obj.mass, 2) * Math.pow(10, G_EXPONENT))) + randArrValue([0, 2, 4, 8]);
 		const angle_step = (2 * Math.PI) / new_objects.length;
-		console.log(`we made ${new_objects.length} new objects, angle step is ${angle_step}`);
+		console.log(`we made ${new_objects.length} new objects, angle step is ${angle_step}, vmag is ${velocity_mag}`);
 		for (const [i, n_obj] of new_objects.entries()) {
 			const angle = angle_step * i * (1 + Math.random());
 			const v = Vec.add(decay_obj.velocity, scalarHypToVec(velocity_mag * randArrValue([0.3, 0.5, 0.8, 1, 1.3, 2.5]), angle));
