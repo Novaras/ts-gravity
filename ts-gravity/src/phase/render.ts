@@ -46,7 +46,7 @@ const makeTextAlignFnFor = (ctx: CanvasRenderingContext2D) => (text: string, h_a
 };
 
 const renderGridCanvas = (show_grid: boolean, grid_ctx: CanvasRenderingContext2D, camera_zoom_scale: number, camera_origin: Vec) => {
-	const should_redraw_grid_canvas = show_grid && universe_bounding_rect && universe_cells && Math.floor(render_tick) % 13 === 0;
+	const should_redraw_grid_canvas = show_grid && universe_bounding_rect && universe_cells.length && Math.floor(render_tick) % 13 === 0;
 	if (should_redraw_grid_canvas) {
 		console.log(`draw grid...`);
 		const ctx = grid_ctx;
@@ -100,7 +100,7 @@ export default (main_canvas: HTMLCanvasElement, grid_canvas: HTMLCanvasElement) 
 		clear();
 
 		renderGridCanvas(show_grid, grid_ctx, camera_zoom_scale, camera_origin);
-		if (show_grid) main_ctx.drawImage(grid_canvas, 0, 0);
+		if (show_grid && universe_cells.length) main_ctx.drawImage(grid_canvas, 0, 0);
 
 		if (largest_decay_mass) {
 			const max_brightness = Math.min(1, Math.max(0.1, (largest_decay_mass / (STABLE_MASS_LIMIT * 2))));
