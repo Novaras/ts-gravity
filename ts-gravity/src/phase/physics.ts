@@ -9,9 +9,13 @@ import { calcRForce } from "./repulse";
 
 let distances_chart: {[key: string]: {[key: string]: number}} = {};
 const getCachedDist = (k1: KineticObj, k2: KineticObj) => {
-	if (!distances_chart[k1.id]) distances_chart[k1.id] = {};
-	distances_chart[k1.id][k2.id] = Math.pow(Vec.distance(k1.pos, k2.pos), 1.2);
-	return distances_chart[k1.id][k2.id];
+	const id_0 = distances_chart[k1.id] ? k1.id : k2.id;
+	const id_1 = id_0 === k1.id ? k2.id : k1.id;
+
+	if (!distances_chart[id_0]) distances_chart[id_0] = {};
+	if (!distances_chart[id_0][id_1]) distances_chart[id_0][id_1] = Math.pow(Vec.distance(k1.pos, k2.pos), 1.2);
+	
+	return distances_chart[id_0][id_1];
 };
 
 const attractFullyGranular = (kinetic_objs: KineticObj[]) => {
@@ -183,7 +187,7 @@ const updateUniverseRects = () => {
 
 		universe_subrects = subDivideRect(universe_bounding_rect, universe_subdivide_depth);
 
-		console.log(universe_subrects)
+		// console.log(universe_subrects)
 
 		universe_cells = [];
 		let avg_count = 0;
@@ -209,9 +213,13 @@ const updateUniverseRects = () => {
 		// } else {
 		// 	universe_subdivide_depth = Math.min(4, universe_subdivide_depth + 1);
 		// }
+	} else {
+		universe_bounding_rect = undefined;
+		universe_subrects = undefined;
+		universe_cells = [];
 	}
 };
-setInterval(updateUniverseRects, 500);
+setInterval(updateUniverseRects, 200);
 
 const attractRectangleRegions = (kinetic_objs: KineticObj[]) => {
 	if (universe_bounding_rect && universe_subrects) {
