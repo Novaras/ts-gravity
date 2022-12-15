@@ -48,18 +48,19 @@ const makeTextAlignFnFor = (ctx: CanvasRenderingContext2D) => (text: string, h_a
 const renderGridCanvas = (show_grid: boolean, grid_ctx: CanvasRenderingContext2D, camera_zoom_scale: number, camera_origin: Vec) => {
 	const should_redraw_grid_canvas = show_grid && universe_bounding_rect && universe_cells && Math.floor(render_tick) % 13 === 0;
 	if (should_redraw_grid_canvas) {
-		console.log(`draw grid...`);
+		// console.log(`draw grid...`);
 		const ctx = grid_ctx;
 		clearAllFn(ctx)();
 		universe_cells.forEach((cell, index) => {
 			// console.log(`cell ${index}`);
 			ctx.save();
+			ctx.lineWidth = 1;
 			ctx.fillStyle = `white`;
 			ctx.strokeStyle = `blue`;
 			const r = cell.rect;
 			const scaled = r.map((v: Vec) => Vec.map(Vec.sub(Vec.mulScalar(v, camera_zoom_scale), camera_origin), n => Math.round(n))) as Rect;
 			ctx.strokeRect(scaled[0][0], scaled[0][1], ...rectDims(scaled));
-			makeTextAlignFnFor(grid_ctx)(index.toString(), scaled[0][0] + 10, scaled[0][1] + 20 - 20 * (1 / camera_zoom_scale));
+			makeTextAlignFnFor(grid_ctx)(index.toString(), scaled[0][0] + 10 * camera_zoom_scale, scaled[0][1] + 20 * camera_zoom_scale);
 			ctx.restore();
 
 			if (cell.barycenter) {
@@ -104,11 +105,11 @@ export default (main_canvas: HTMLCanvasElement, grid_canvas: HTMLCanvasElement) 
 
 		if (largest_decay_mass) {
 			const max_brightness = Math.min(1, Math.max(0.1, (largest_decay_mass / (STABLE_MASS_LIMIT * 2))));
-			const overlays = Array<Drawable>.from({ length: 100 }, (_, k) => ({
+			const overlays = Array.from({ length: 100 }, (_, k) => ({
 				drawFn: `fillRect` as DrawableFn,
 				drawFnArgs: [0, 0, 800, 800] as Parameters<CanvasRenderingContext2D[`fillRect`]>,
 				fillStyle: `hsla(${massToHSL(largest_decay_mass).h}, 100%, 95%, ${max_brightness - max_brightness * (k / 100)})`,
-			}));
+			})) as Drawable[];
 			extra_to_draw.push(...overlays);
 		}
 

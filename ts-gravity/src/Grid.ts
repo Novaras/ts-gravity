@@ -45,5 +45,5 @@ export const neighboringCellIndexes = <T>(grid: T[], index: number, depth: numbe
 	};
 	// at the end we turn it all into a Set and back into an array, so every index is unique
 	// also we remove the initial index
-	return [...new Set(_fn(index, depth).filter(i => i !== index))];
+	return [...new Set(_fn(index, depth).filter(i => i !== index && i >= 0 && i < grid.length))];
 };

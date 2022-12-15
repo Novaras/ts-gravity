@@ -1,6 +1,6 @@
 import { Vec } from "./Vec";
 
-export const massToRadius = (mass: number) => mass / 80;
+export const massToRadius = (mass: number) => Math.round(mass / 80);
 
 export default class KineticObj {
 	constructor(
@@ -9,6 +9,8 @@ export default class KineticObj {
 		this._age = 0;
 		this._radius = massToRadius(this.mass);
 		this._ghosted = false;
+		this._fixed = false;
+		this._mergeable = true;
 	}
 
 	static GROWTH_EXPONENT = 1 / 2;
@@ -17,6 +19,9 @@ export default class KineticObj {
 	private _age: number;
 	private _unghost_age?: number;
 	private _ghosted: boolean;
+	private _unfix_age?: number;
+	private _fixed: boolean;
+	private _mergeable: boolean;
 
 	// -- getters
 
@@ -56,6 +61,14 @@ export default class KineticObj {
 		return this._ghosted;
 	}
 
+	get fixed() {
+		return this._fixed;
+	}
+
+	get mergeable() {
+		return this._mergeable;
+	}
+
 	// -- setters
 
 	setId(id: string) {
@@ -77,7 +90,8 @@ export default class KineticObj {
 	// -- modifiers
 
 	accelerate(accel_vec: Vec) {
-		this._velocity = Vec.add(this._velocity, accel_vec);
+		this._velocity[0] += accel_vec[0];
+		this._velocity[1] += accel_vec[1];
 	}
 
 	ghost(duration: number) {
@@ -85,14 +99,33 @@ export default class KineticObj {
 		this._ghosted = true;
 	}
 
+	setFixed(duration: number) {
+		this._unfix_age = this.age + duration;
+		this._fixed = true;
+	}
+
+	setMergeable(mergable: boolean) {
+		this._mergeable = mergable;
+	}
+
 	// call this each frame
 	update() {
-		this._radius = massToRadius(this.mass);
-		this._pos = Vec.add(this._pos, this._velocity);
 		this._age += 1;
+		this._radius = massToRadius(this.mass);
+		if (!this._fixed) {
+			for (const i of [0, 1]) {
+				this._pos[i] += this._velocity[i];
+			}
+		} else {
+			this._velocity = [0, 0];
+		}
 		if (this._unghost_age && this._unghost_age <= this.age) {
 			this._unghost_age = undefined;
 			this._ghosted = false;
+		}
+		if (this._unfix_age && this._unfix_age <= this.age) {
+			this._unfix_age = undefined;
+			this._fixed = false;
 		}
 	}
 }

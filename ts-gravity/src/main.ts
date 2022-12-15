@@ -21,7 +21,7 @@ ctx.textAlign = `center`;
 
 const adv_btn = document.getElementById(`advance-frame`)!;
 adv_btn.addEventListener(`click`, () => {
-	// console.log(kinetic_objs);
+	console.log(kinetic_objs);
 	window.requestAnimationFrame(t => main(t, true));
 	fillIndexTableRows();
 });
@@ -188,8 +188,8 @@ const randKineticObj = function () {
 		// randVec(200, 600),
 		randVec(-500 * n, 500 * n),
 		// randVec(-15, 15),
-		// randVec(-0, 0),
-		[vx, vy],
+		randVec(-0, 0),
+		// [vx, vy],
 		nextId(),
 	);
 };
@@ -233,7 +233,26 @@ const selectObject = (index: number) => {
 /** camera origin is the top-left corner! */
 export let camera_origin: Vec = [0, 0];
 export let camera_zoom = 0.01;
-export let kinetic_objs = Array.from({ length: n }, randKineticObj);
+// export let kinetic_objs = Array.from({ length: n }, randKineticObj);
+export let kinetic_objs = [
+	new KineticObj(1000, [200, 200], [1, 0], `0`),
+	new KineticObj(1000, [700, 700], [-1, 0], `1`),
+].map(k_obj => {
+	// k_obj.ghost(Infinity);
+	return k_obj;
+});
+
+// export let kinetic_objs: KineticObj[] = [];
+// const origin: Vec = [-6400, -6400];
+// const y_step = Math.abs((origin[1] / 4));
+// const offset = y_step / 2;
+// for (let y = origin[1]; y < origin[1] + 16 * y_step; y += y_step) {
+// 	for (let x = origin[0]; x < origin[0] + 16 * y_step; x += y_step) {
+// 		const r: Vec = Vec.map([Math.random(), Math.random()], n => n * 100);
+// 		kinetic_objs.push(new KineticObj(1000, [x + r[0] + offset, y + r[1] + offset], [0, 0], kinetic_objs.length.toString()));
+// 	}
+// }
+
 export let selection: KineticObj | undefined;
 
 

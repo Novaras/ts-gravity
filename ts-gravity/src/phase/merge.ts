@@ -1,6 +1,7 @@
 import KineticObj from "../KineticObj";
 import { sortByMass } from "../PhysicsLib";
 import { Vec } from "../Vec";
+import { universe_cells } from "./physics";
 
 export const mergerOf = (mergee: KineticObj, merger: KineticObj) => {
 	const mass = merger.mass + mergee.mass;
@@ -9,7 +10,7 @@ export const mergerOf = (mergee: KineticObj, merger: KineticObj) => {
 		(merger.momentum[1] + mergee.momentum[1]) / mass
 	];
 
-	return new KineticObj(mass, mergee.pos, vel, `m(${merger.id}->${mergee.id})`);
+	return new KineticObj(mass, mergee.pos, vel, `m(${merger.id}+${mergee.id})`);
 };
 
 export const baryCenterReduce = (barycenter: KineticObj, k_obj: KineticObj) => {
@@ -18,10 +19,14 @@ export const baryCenterReduce = (barycenter: KineticObj, k_obj: KineticObj) => {
 	// const pb = Vec.mulScalar(barycenter.pos, barycenter.mass);
 	// const po = Vec.mulScalar(k_obj.pos, k_obj.mass);
 	// merger.setPos(Vec.divScalar(Vec.average(pb, po), (barycenter.mass + k_obj.mass) / 2));
-	merger.setPos(Vec.divScalar(Vec.add(barycenter.pos, k_obj.pos), 2));
+
+	merger.setPos([
+		(barycenter.mass * barycenter.pos[0] + k_obj.mass * k_obj.pos[0]) / (barycenter.mass + k_obj.mass),
+		(barycenter.mass * barycenter.pos[1] + k_obj.mass * k_obj.pos[1]) / (barycenter.mass + k_obj.mass),
+	]);
 	return merger;
 };
-export const kineticObjsToBarycenter = (kinetic_objs: KineticObj[]) => kinetic_objs.reduce(baryCenterReduce);
+export const kineticObjsToBarycenter = (kinetic_objs: KineticObj[], label: string = `*`) => kinetic_objs.reduce(baryCenterReduce, new KineticObj(0, [0,0], [0,0], label));
 
 const getUniverseBoundingRect = (kinetic_objs: KineticObj[]): [Vec, Vec] => {
 	let min_x = 0;
@@ -48,68 +53,34 @@ export default (kinetic_objs: KineticObj[]) => {
 
 	if (kinetic_objs.length < 2) return merged_pairs;
 
-	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
-		const k1 = kinetic_objs[i];
-		if (k1.ghosted) continue;
-		for (let j = i + 1; j < kinetic_objs.length; ++j) {
-			const k2 = kinetic_objs[j];
-			// theoretically if we check the next position correctly, we shouldn't need to check the
-			// current positions, since the previous pass should have caught those collisions already
+	universe_cells.forEach(cell => {
+		const { k_objs } = cell;
+		if (k_objs.length < 2) return;
 
-			// bounding rectangle topleft corners
-			
-			const d2 = Vec.distanceSq(k1.next_pos, k2.next_pos);
-			const r2 = Math.pow((k1.radius + k2.radius), 2);
-			if (d2 <= r2) {
-				merged_pairs.push([k1.id, k2.id]);
-				// playing = false;
-				const [smaller, larger] = [k1, k2].sort(sortByMass);
-				const merger = mergerOf(smaller, larger);
+		for (let i = 0; i < k_objs.length - 1; ++i) {
+			const k1 = k_objs[i];
+			if (k1.ghosted) continue;
+			for (let j = i + 1; j < k_objs.length; ++j) {
+				const k2 = k_objs[j];
+				if (k2.ghosted) continue;
 
-				larger.setMass(merger.mass);
-				larger.setVelocity(merger.velocity);
+				const d2 = Vec.distanceSq(k1.next_pos, k2.next_pos);
+				const r2 = Math.pow((k1.radius + k2.radius), 2);
+				if (d2 <= r2) {
+					const [smaller, larger] = [k1, k2].sort(sortByMass);
+					const merger = mergerOf(smaller, larger);
 
-				// const propPos = (k1_scalar_pos: number, k2_scalar_pos: number, p1: number, p2: number) => {
-				// 	return ((p1 * k1_scalar_pos) + (p2 * k2_scalar_pos)) / (k1_scalar_pos + k2_scalar_pos);
-				// };
+					larger.setMass(merger.mass);
+					larger.setVelocity(merger.velocity);
 
-				// const pPos = (k1, k2) => {
-				// 	const smaller = k1.mass > k2.mass ? k2.mass : k1.mass;
-				// 	const [p1, p2] = [k1.mass / smaller, k2.mass / smaller];
-				// 	return (dim: `x` | `y`) => {
-				// 		return 
-				// 	};
-				// };
-
-				// k1.setPos(new Vec2(
-				// 	propPos(k1.pos.x, k2.pos.x, p1, p2),
-				// 	(() + ()) / ()
-				// ));
-
-				// mrx = (m1x + m2x) / 2
-				// with mass proportions accounted:
-				// mrx = (m1p * m1x + m2p * m2x) / (m1p + m2p)
-
-				// if k1 is 2x more massive:
-				// (1 * 2, 3 * 2)
-				// (2 * 1, 8 * 1)
-				// mx = (2 + 2) / 3
-				//    = 1.33 nice
-
-				// if k2 is 2x more massive:
-				// mx = ((1 * 1) + (2 * 2)) / 3
-				//    = (1 + 4) / 3
-				//    = 1.66 awesome
-
-				// normally we splice the higher index, but if that obj 'wins' the merger by being larger,
-				// then we need to swap the smaller with the updated larger object before its deleted
-				// (the high index is always the one spliced)
-				if (k1.id === smaller.id) {
-					kinetic_objs.splice(i, 1, larger);
+					const [i1, j1] = [k1, k2].map(k => kinetic_objs.findIndex(other => other.id === k.id));
+					if (k1.id === smaller.id) {
+						kinetic_objs.splice(i1, 1, larger);
+					}
+					kinetic_objs.splice(j1, 1);
 				}
-				kinetic_objs.splice(j, 1);
 			}
 		}
-	}
+	});
 	return merged_pairs;
 };

@@ -1,4 +1,4 @@
-import { xyCoordsToIndex, neighboringCellIndexes, indexToXYCoords } from "../Grid";
+import { InteractionInfo, InteractionsCacheHandler } from "../InteractionCache";
 import KineticObj from "../KineticObj";
 import { kinetic_objs } from "../main";
 import { accelerateBoth, angleBetweenPoints, calcGForce, forceToAccelVecs, forceVecBetween, netForceBetween, scalarHypToVec } from "../PhysicsLib";
@@ -7,15 +7,15 @@ import { Vec } from "../Vec";
 import { mergerOf, baryCenterReduce, kineticObjsToBarycenter } from "./merge";
 import { calcRForce } from "./repulse";
 
-let distances_chart: {[key: string]: {[key: string]: number}} = {};
-const getCachedDist = (k1: KineticObj, k2: KineticObj) => {
-	if (!distances_chart[k1.id]) distances_chart[k1.id] = {};
-	distances_chart[k1.id][k2.id] = Math.pow(Vec.distance(k1.pos, k2.pos), 1.2);
-	return distances_chart[k1.id][k2.id];
+const interactions_cache = new InteractionsCacheHandler();
+const calculateInteractions = (k1: KineticObj, k2: KineticObj) => {
+	const distance = Vec.distanceSq(k1.pos, k2.pos);
+	const net_force = netForceBetween(k1, k2, [() => calcGForce(k1, k2, distance)]);
+	const accel_vecs = forceToAccelVecs(net_force, k1, k2);
+	return { distance, net_force, accel_vecs };
 };
 
 const attractFullyGranular = (kinetic_objs: KineticObj[]) => {
-	distances_chart = {};
 	for (let i = 0; i < kinetic_objs.length - 1; ++i) {
 		const k1 = kinetic_objs[i];
 		if (k1.ghosted) continue;
@@ -23,26 +23,13 @@ const attractFullyGranular = (kinetic_objs: KineticObj[]) => {
 			const k2 = kinetic_objs[j];
 			if (k2.ghosted) continue;
 
-			const d = getCachedDist(k1, k2);
+			// const [lo, hi] = interactions_cache.sortedCacheIndexesOf(k1, k2);
+			// const { accel_vecs } = interactions_cache.readOrUpdate(lo, hi, () => calculateInteractions(k1, k2))[hi] as Filled<InteractionInfo>;
 
-			accelerateBoth(k1, k2, (k1, k2) => {
-				const g = calcGForce(k1, k2, d);
-				const r = calcRForce(k1, k2, d);
+			const { accel_vecs } = calculateInteractions(k1, k2);
 
-				const f_limit = Infinity;
-				let f = g + r;
-				if (Math.abs(f) > f_limit) f = (Math.abs(f) / f) * f_limit;
-
-				// if (i === 0 && j === 1) {
-				// 	console.group(`${k1.id} <-> ${k2.id}`);
-				// 	console.log(`dist: ${Vec.distance(k1.pos, k2.pos)}`)
-				// 	console.log(`g: ${g}\tr: ${r}`);
-				// 	console.log(`f: ${f}`);
-				// 	console.groupEnd();
-				// } 
-
-				return f;
-			});
+			k1.accelerate(accel_vecs[0]);
+			k2.accelerate(accel_vecs[1]);
 		}
 	}
 };
@@ -89,6 +76,7 @@ const attractWithUniverseBarycenter = (kinetic_objs: KineticObj[]) => {
 	});
 };
 
+let old_cache: {[k: string]: {[k: string]: number }} = {};
 const attractWithConcentricBarycenters = (kinetic_objs: KineticObj[]) => {
 	const ring_granularity = 8;
 	kinetic_objs.forEach((k_obj, i) => {
@@ -110,11 +98,11 @@ const attractWithConcentricBarycenters = (kinetic_objs: KineticObj[]) => {
 			// ring = all objects closer than r, sans those we already used
 			// console.group(`o: ${k_obj.id}`);
 			const ring = available_objects.filter(other_obj => {
-				distances_chart[k_obj.id] = distances_chart[k_obj.id] ?? {};
-				const lookup = distances_chart[k_obj.id][other_obj.id];
+				old_cache[k_obj.id] = old_cache[k_obj.id] ?? {};
+				const lookup = old_cache[k_obj.id][other_obj.id];
 				// console.log(`lookup for ${k_obj.id}-${other_obj.id}: ${lookup}`);
 				const d2 = lookup ? lookup : Vec.distanceSq(k_obj.pos, other_obj.pos);
-				if (!lookup) distances_chart[k_obj.id][other_obj.id] = d2;
+				if (!lookup) old_cache[k_obj.id][other_obj.id] = d2;
 				// console.log(`dsq ${k_obj.id}-${other_obj.id}: ${d2}`);
 				if (d2 <= r && d2 >= r - ring_grow) {
 					to_remove.push(other_obj.id);
@@ -154,10 +142,10 @@ const attractWithConcentricBarycenters = (kinetic_objs: KineticObj[]) => {
 
 export let universe_bounding_rect: Rect | undefined;
 export let universe_subrects: Rect[] | undefined;
-type Cell = { rect: Rect, k_objs: KineticObj[], barycenter?: KineticObj };
+type Cell = { rect: Rect, k_objs: KineticObj[], barycenter?: KineticObj, density: number };
 export let universe_cells: Cell[] = [];
 export let universe_subdivide_depth = 3;
-export const GRANULARITY_BREAKPOINT = 300;
+export const GRANULARITY_BREAKPOINT = 400;
 const updateUniverseRects = () => {
 	if (kinetic_objs.length > GRANULARITY_BREAKPOINT) {
 		const position_mags = kinetic_objs.map(k_obj => Vec.magnitude(k_obj.pos)).sort((m1, m2) => {
@@ -183,26 +171,26 @@ const updateUniverseRects = () => {
 
 		universe_subrects = subDivideRect(universe_bounding_rect, universe_subdivide_depth);
 
-		console.log(universe_subrects)
+		// console.log(universe_subrects);
 
 		universe_cells = [];
-		let avg_count = 0;
-		let overdensity = false;
+
+		const cell_area = Vec.area(Vec.vecBetween(universe_bounding_rect[0], universe_bounding_rect[1]));
 		for (let index = 0; index < universe_subrects.length; ++index) {
 			const rect = universe_subrects[index];
 
 			const objs = kinetic_objs.filter(k => pointInRect(k.pos, rect));
 			// further subdivide the rect if its overpopulated
-			avg_count = (avg_count + objs.length) / 2;
-			if (objs.length > kinetic_objs.length / 20) {
-				overdensity = true;
-			}
+
 			universe_cells.push({
 				rect,
 				k_objs: objs,
-				barycenter: objs.length ? kineticObjsToBarycenter(objs) : undefined
+				barycenter: objs.length ? kineticObjsToBarycenter(objs, `<B${index}>`) : undefined,
+				density: objs.reduce((total, k) => total + k.mass, 0) / cell_area,
 			});
 		}
+
+		
 		// if (!overdensity) {
 		// 	const density = avg_count / kinetic_objs.length;
 		// 	if (density < 0.01) universe_subdivide_depth = Math.max(0, universe_subdivide_depth - 1);
@@ -211,22 +199,33 @@ const updateUniverseRects = () => {
 		// }
 	}
 };
-setInterval(updateUniverseRects, 500);
+setInterval(updateUniverseRects, 300);
 
-const attractRectangleRegions = (kinetic_objs: KineticObj[]) => {
+const attractRectangleRegions = () => {
 	if (universe_bounding_rect && universe_subrects) {
-	
-		distances_chart = {};
-		const w = Math.sqrt(universe_cells.length);
-		const neighbors_depth = 0;
 
+		const grid_cell_diagonal = Vec.distance(universe_bounding_rect![0], universe_bounding_rect![1]) / Math.pow(2, universe_subdivide_depth);
 		universe_cells.forEach((cell, i) => {
-			const neighbor_indexes = neighboringCellIndexes(universe_cells, i, neighbors_depth, w);
-			const neighbors = [cell, ...neighbor_indexes.map(index => universe_cells[index]).filter(cell => cell)];
-			const others = universe_cells.reduce((others, cell) => {
-				if (!neighbors.includes(cell)) others.push(cell);
-				return others;
-			}, [] as Cell[]);
+			const neighbors = universe_cells.filter(other_cell => {
+				// if (cell.barycenter && other_cell.barycenter) {
+				// 	console.group(`is cell ${universe_cells.findIndex(uc => other_cell === uc)} neighbor of ${universe_cells.findIndex(uc => cell === uc)}`);
+				// 	console.log(`dist is ${Vec.distance(cell.barycenter.pos, other_cell.barycenter.pos)}`);
+				// 	console.log(`less than ${Vec.distance(universe_bounding_rect![0], universe_bounding_rect![1]) / Math.pow(2, universe_subdivide_depth)}?`);
+				// 	console.log(Vec.distance(cell.barycenter.pos, other_cell.barycenter.pos) < Vec.distance(universe_bounding_rect![0], universe_bounding_rect![1]) / Math.pow(2, universe_subdivide_depth));
+				// 	console.groupEnd();
+				// }
+				return cell === other_cell || (cell.barycenter &&
+					   other_cell.barycenter &&
+					   Vec.distance(cell.barycenter.pos, other_cell.barycenter.pos) < grid_cell_diagonal);
+			});
+			// console.log(`neighbors of index ${i} are ${neighbors.map((n) => universe_cells.findIndex(c => c === n)).reduce((s, i) => `${s}, ${i}`, ``)}`);
+			// const neighbors = [cell, ...neighbor_indexes.map(index => universe_cells[index]).filter(cell => cell)];
+			const others = universe_cells.filter(other_cell => {
+				return !neighbors.includes(other_cell) &&
+					cell.barycenter &&
+					other_cell.barycenter &&
+					Vec.distance(cell.barycenter.pos, other_cell.barycenter.pos) < grid_cell_diagonal * 3
+			});
 	
 			// console.group(`for objs in cell ${i}`);
 			// console.log(`${neighbors.length} neighbors`);
@@ -242,12 +241,11 @@ const attractRectangleRegions = (kinetic_objs: KineticObj[]) => {
 						for (let k_idx = 0; k_idx < n_cell.k_objs.length; ++k_idx) {
 							const k2 = n_cell.k_objs[k_idx];
 							if (!k2.ghosted && k2.id !== k1.id) {
-								// console.log(`${k1.id}-${k2.id}`);
-								const d = getCachedDist(k1, k2);
-								const F = netForceBetween(k1, k2, [() => calcGForce(k1, k2, d)]);
-								const [a1, a2] = forceToAccelVecs(F, k1, k2);
-								k1.accelerate(a1);
-								// k2.accelerate(a2);
+								// const [c1, c2] = interactions_cache.sortedCacheIndexesOf(k1, k2);
+								// const { accel_vecs } = interactions_cache.readOrUpdate(c1, c2, () => calculateInteractions(k1, k2))[c2] as Filled<InteractionInfo>;
+								const { accel_vecs } = calculateInteractions(k1, k2);
+
+								k1.accelerate(accel_vecs[0]);
 							}
 						}
 					}
@@ -256,11 +254,10 @@ const attractRectangleRegions = (kinetic_objs: KineticObj[]) => {
 						const B = o_cell.barycenter;
 						
 						if (B) {
-							const F = netForceBetween(k1, B, [() => calcGForce(k1, B, Math.pow(Vec.distance(k1.pos, B.pos), 1.2))]);
+							const F = netForceBetween(k1, B, [() => calcGForce(k1, B, Math.pow(Vec.distanceSq(k1.pos, B.pos), 1.2))]);
 							// if (Math.random() < 0.1) {
-							// 	console.log(`${k1.id}-${B.id}`);
-							// 	console.log(F);
-							// 	console.log(forceToAccelVecs(F, k1, B));
+								// console.log(`${k1.id}-${B.id}: ${F}`);
+								// console.log(forceToAccelVecs(F, k1, B));
 							// }
 							const accel = forceToAccelVecs(F, k1, B)[0];
 							k1.accelerate(accel);
@@ -271,6 +268,7 @@ const attractRectangleRegions = (kinetic_objs: KineticObj[]) => {
 			});
 			// console.groupEnd();
 		});
+
 	}
 };
 
@@ -287,6 +285,7 @@ export default (kinetic_objs: KineticObj[]) => {
 	// attractRectangleRegions(kinetic_objs);
 	// t2 = performance.now();
 	// console.log(`time for rects: ${t2 - t1}`);
-
-	kinetic_objs.length < GRANULARITY_BREAKPOINT ? attractFullyGranular(kinetic_objs) : attractRectangleRegions(kinetic_objs);
+	interactions_cache.flush();
+	kinetic_objs.length < GRANULARITY_BREAKPOINT ? attractFullyGranular(kinetic_objs) : attractRectangleRegions();
+	// console.log(interactions_cache);
 };

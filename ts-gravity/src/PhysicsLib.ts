@@ -69,7 +69,7 @@ export const forceToAccelVecs = (force: number, k1: KineticObj, k2: KineticObj) 
 	const av1 = [ fx / k1.mass, fy / k1.mass ] as Vec;
 	const av2 = [ -fx / k2.mass, -fy / k2.mass ] as Vec;
 
-	return [av1, av2];
+	return [av1, av2] as [Vec, Vec];
 };
 
 export const accelerateBoth = (k1: KineticObj, k2: KineticObj, forceFn: (k1: KineticObj, k2: KineticObj) => number) => {
