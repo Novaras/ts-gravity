@@ -29,14 +29,6 @@ const attractFullyGranular = (kinetic_objs: KineticObj[]) => {
 				let f = g + r;
 				if (Math.abs(f) > f_limit) f = (Math.abs(f) / f) * f_limit;
 
-				// if (i === 0 && j === 1) {
-				// 	console.group(`${k1.id} <-> ${k2.id}`);
-				// 	console.log(`dist: ${Vec.distance(k1.pos, k2.pos)}`)
-				// 	console.log(`g: ${g}\tr: ${r}`);
-				// 	console.log(`f: ${f}`);
-				// 	console.groupEnd();
-				// } 
-
 				return f;
 			});
 		}

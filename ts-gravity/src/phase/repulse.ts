@@ -2,7 +2,7 @@ import KineticObj from "../KineticObj";
 import { accelerateBoth, G } from "../PhysicsLib";
 import Vec2 from "../Vec2";
 
-export const R_EXPONENT = -1;
+export const R_EXPONENT = -1.2;
 export const R = -6.673 * Math.pow(10, R_EXPONENT);
 export const calcRForce = (k1: KineticObj, k2: KineticObj) => {
 	return (R * k1.mass * k2.mass) / Vec2.distanceSq(k1.pos, k2.pos);
